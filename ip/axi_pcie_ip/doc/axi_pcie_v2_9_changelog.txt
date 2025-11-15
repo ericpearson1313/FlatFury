@@ -1,0 +1,399 @@
+2025.1:
+ * Version 2.9 (Rev. 14)
+ * General: Updated IP Catalog taxonomy structure and IP descriptions. This change has no impact to the IP.
+ * General: Reduced number of internal subcores used, no functional change
+ * Revision change in one or more subcores
+
+2024.2.2:
+ * Version 2.9 (Rev. 13)
+ * No changes
+
+2024.2.1:
+ * Version 2.9 (Rev. 13)
+ * Revision change in one or more subcores
+
+2024.2:
+ * Version 2.9 (Rev. 12)
+ * General: vivado linter updates
+ * Revision change in one or more subcores
+
+2024.1.2:
+ * Version 2.9 (Rev. 11)
+ * No changes
+
+2024.1.1:
+ * Version 2.9 (Rev. 11)
+ * No changes
+
+2024.1:
+ * Version 2.9 (Rev. 11)
+ * General: IP packaging adjustments to address warnings from IP Packager integrity check
+ * Revision change in one or more subcores
+
+2023.2.2:
+ * Version 2.9 (Rev. 10)
+ * No changes
+
+2023.2.1:
+ * Version 2.9 (Rev. 10)
+ * No changes
+
+2023.2:
+ * Version 2.9 (Rev. 10)
+ * General: Rebrand to AMD copyright information
+ * Revision change in one or more subcores
+
+2023.1.2:
+ * Version 2.9 (Rev. 9)
+ * No changes
+
+2023.1.1:
+ * Version 2.9 (Rev. 9)
+ * No changes
+
+2023.1:
+ * Version 2.9 (Rev. 9)
+ * Revision change in one or more subcores
+
+2022.2.2:
+ * Version 2.9 (Rev. 8)
+ * No changes
+
+2022.2.1:
+ * Version 2.9 (Rev. 8)
+ * No changes
+
+2022.2:
+ * Version 2.9 (Rev. 8)
+ * Revision change in one or more subcores
+
+2022.1.2:
+ * Version 2.9 (Rev. 7)
+ * No changes
+
+2022.1.1:
+ * Version 2.9 (Rev. 7)
+ * No changes
+
+2022.1:
+ * Version 2.9 (Rev. 7)
+ * Revision change in one or more subcores
+
+2021.2.2:
+ * Version 2.9 (Rev. 6)
+ * No changes
+
+2021.2.1:
+ * Version 2.9 (Rev. 6)
+ * No changes
+
+2021.2:
+ * Version 2.9 (Rev. 6)
+ * Revision change in one or more subcores
+
+2021.1.1:
+ * Version 2.9 (Rev. 5)
+ * No changes
+
+2021.1:
+ * Version 2.9 (Rev. 5)
+ * Revision change in one or more subcores
+
+2020.3:
+ * Version 2.9 (Rev. 4)
+ * No changes
+
+2020.2.2:
+ * Version 2.9 (Rev. 4)
+ * No changes
+
+2020.2.1:
+ * Version 2.9 (Rev. 4)
+ * No changes
+
+2020.2:
+ * Version 2.9 (Rev. 4)
+ * Feature Enhancement: Added support for device xa7k160t
+ * Feature Enhancement: Support of CPG236/CPG238 re-established for x2 modes
+ * Revision change in one or more subcores
+
+2020.1.1:
+ * Version 2.9 (Rev. 3)
+ * No changes
+
+2020.1:
+ * Version 2.9 (Rev. 3)
+ * Revision change in one or more subcores
+
+2019.2.2:
+ * Version 2.9 (Rev. 2)
+ * No changes
+
+2019.2.1:
+ * Version 2.9 (Rev. 2)
+ * No changes
+
+2019.2:
+ * Version 2.9 (Rev. 2)
+ * Revision change in one or more subcores
+
+2019.1.3:
+ * Version 2.9 (Rev. 1)
+ * No changes
+
+2019.1.2:
+ * Version 2.9 (Rev. 1)
+ * No changes
+
+2019.1.1:
+ * Version 2.9 (Rev. 1)
+ * No changes
+
+2019.1:
+ * Version 2.9 (Rev. 1)
+ * Feature Enhancement: Added support for device xa7k160t
+ * Feature Enhancement: Support of CPG236/CPG238 re-established for x2 modes
+ * Revision change in one or more subcores
+
+2018.3.1:
+ * Version 2.9
+ * No changes
+
+2018.3:
+ * Version 2.9
+ * Bug Fix: Fixed AXI BAR parameter propagation issue in IPI design
+ * Bug Fix: Fixed JTAG debugger Issue
+ * Feature Enhancement: Added user_link_up output port
+ * Revision change in one or more subcores
+
+2018.2:
+ * Version 2.8 (Rev. 9)
+ * Bug Fix: Updated MSIX TABLE & PBA OFFSET parameters. Which effects MSI-X functionality
+ * Other: Updated MPS value to 256 Bytes in simulation (512 Bytes is not supported by this IP)
+ * Revision change in one or more subcores
+
+2018.1:
+ * Version 2.8 (Rev. 8)
+ * Bug Fix: Fixed implementation issues for xc7z012s device. The maximum link width and speed supported for this device is x2Gen1. Refer PG055 for more details
+ * Other: Updated MPS value to 256 Bytes in simulation (512 Bytes is not supported by this IP)
+ * Revision change in one or more subcores
+
+2017.4:
+ * Version 2.8 (Rev. 7)
+ * Feature Enhancement: Added c_axibar_chk_slv_err option to enable Slave Error response when AXIBAR is missed
+ * Other: Added AXI register description in component.xml IP-XACT file
+ * Revision change in one or more subcores
+
+2017.3:
+ * Version 2.8 (Rev. 6)
+ * Bug Fix: updated arrow colors in case of draw lttsm script
+ * Revision change in one or more subcores
+
+2017.2:
+ * Version 2.8 (Rev. 5)
+ * Bug Fix: Added Root Port Interrupt FIFO Depth GUI selection.
+ * Revision change in one or more subcores
+
+2017.1:
+ * Version 2.8 (Rev. 4)
+ * Bug Fix: PIPE Simulation support added for internal clocking option.
+ * Bug Fix: Added create_generated_clock constraint for GT's CLKRSVD pin
+ * Feature Enhancement: Added JTAG debugger support in the Add. Debug Options GUI page to debug LTSSM, Reset sequence and Rx detect sequence.
+ * Other: Change RP Function Number to 0 in Example Design's Testbench
+ * Revision change in one or more subcores
+
+2016.4:
+ * Version 2.8 (Rev. 3)
+ * Bug Fix: Fixed AXI Slave interface stalling in 128-bit AXI configuration due to Completion Timeout/URs
+ * Bug Fix: Fixed INTx missing issue when both MSI and INTx arrive at the same time
+ * Other: Removed write restriction to Memory Limit/Base registers (Offset 0x20) in Type 1 PCI Configuration Space
+ * Revision change in one or more subcores
+
+2016.3:
+ * Version 2.8 (Rev. 2)
+ * Feature Enhancement: Source HDL files are concatenated into a single file to speed up synthesis and simulation. No changes required by the user
+ * Feature Enhancement: Added DRC for AXIS_CTL_SIZE for RP and EP. Updated Tooltip for BASEADDR and HIGHADDR parametersi in core configuration GUI page
+ * Feature Enhancement: Changed default value for HIGHADDR to 0x00001FFF
+ * Feature Enhancement: Added Tie off for M_AXI interface.
+ * Revision change in one or more subcores
+
+2016.2:
+ * Version 2.8 (Rev. 1)
+ * Fixed delta delay mismatch between axi_aclk and axi_ctl_aclk clock domains in simulation environment
+ * Revision change in one or more subcores
+
+2016.1:
+ * Version 2.8
+ * Modified the width of pipe_tx_*_sigs, common_commands_in and common_commands_out
+ * Changes to HDL library management to support Vivado IP simulation library
+ * Added HAS_BURST parameter on M_AXI interfaces for SmartConnect optimization
+ * Revision change in one or more subcores
+
+2015.4.2:
+ * Version 2.7 (Rev. 1)
+ * No changes
+
+2015.4.1:
+ * Version 2.7 (Rev. 1)
+ * No changes
+
+2015.4:
+ * Version 2.7 (Rev. 1)
+ * Fixed intermittent MSI packet lost (Xilinx Answer 65647)
+ * Revision change in one or more subcores
+
+2015.3:
+ * Version 2.7
+ * Fixed GTP DRP write issue - (Xilinx Answer 63182)
+ * For EXTERNAL PIPE INTERFACE mode, a new file xil_sig2pipe.v is delivered in the simulation directory and it replaces the phy_sig_gen.v. BFM/VIP’s should interface with the xil_sig2pipe instance in board.v
+ * IP revision number added to HDL module, library, and include file names, to support designs with both locked and upgraded IP instances
+ * Revision change in one or more subcores
+
+2015.2.1:
+ * Version 2.6 (Rev. 1)
+ * No changes
+
+2015.2:
+ * Version 2.6 (Rev. 1)
+ * Added an option to hide RP BAR to prevent CPU from unnecessarily enumerating large RP BAR
+ * Added an option to have 4GB RP BAR size (Address Translation will not be performed if 4GB BAR is used)
+ * Added support to handle empty S-AXI data beat at the beginning of PCIe transaction
+ * Fixed back-to-back AXI Lite transaction lock up
+ * Fixed s_axi_ctl_wstrb use case for AXI Lite transaction towards PCIe bridge
+ * Fixed parameter propagation for ext_ch_gt_drpclk port in IPI
+ * Added support for xq7z100 device
+ * Added synthesizable RP example design
+
+2015.1:
+ * Version 2.6
+ * Added support for RP example design
+ * Added support for shared logic in RP
+ * Added ffv1156, fbv484, fbv676 packages support
+ * Added PIPE simulation support for EP and RP example designs
+ * Replaced PCIe Gen2 Streaming core files in Endpoint example design with Root Port model files consisting of dsport and usrapp
+ * Added Transceiver debug and status port txinhibit as a part of EOU item
+
+2014.4.1:
+ * Version 2.5 (Rev. 1)
+ * No changes
+
+2014.4:
+ * Version 2.5 (Rev. 1)
+ * Added support for Zynq xc7z035 device
+ * Removed old ISE based XCS tags
+
+2014.3:
+ * Version 2.5
+ * Fixed IPI issue for x1gen1 on propagation of 62.5Mhz FREQ_HZ parameter for input clocks obtained during upgrade from older versions
+ * Added support for Kintex7 Low voltage (0.9v) variants, for only Gen1 speed
+ * Removed unused Virtex6 and Spartan6 primitives
+ * Added support for kintex7 Defense grade Low voltage (0.9v) variants, for only Gen1 speed.
+ * Fixed CPLL power spike on power up issue (AR 59294)
+
+2014.2:
+ * Version 2.4
+ * Added AZynq7030 device support
+ * Added QArtix 50t device support
+ * Enabled External PIPE interface support only when shared logic option "Shared Logic (clocking) in example design" is selected
+ * Removed axi_aclk, axi_ctl_aclk input pins
+ * Fixed IPI issue of 62.5Mhz output clock for x1gen1 64-bit configuration
+ * Added support for 125Mhz Reference clock frequency
+
+2014.1:
+ * Version 2.3 (Rev. 1)
+ * Removed dependency of AxRegion inputs
+ * Added support for Zynq xc7z015 device
+ * Added artix7l and aartix7 devices support for 35t, 75t, 50t
+ * Added CPG236, CSG325 packages support
+ * Base/High parameters of slave are set from IP bd.tcl instead of IPI internal C++ function
+ * AXI BRAM controller used in example design is changed from version 3.0 to 4.0
+ * Fixed AXI upsizer module on read request to handle packet correctly.
+ * Removed S6,V6 related files and instances.
+ * Fixed fifo full logic issue in cfg_event_handler
+ * Fixed 62.5Mhz userclk1 for x1gen1 configuration when shared logic is selected in core
+
+2013.4:
+ * Version 2.3
+ * Added default configuration values for AXI and PCIe BARs
+ * Added support for External PIPE Interface
+ * Added XC7Z200TSBG484 device support
+ * Added support for Artix7 35t, 50t and 75t devices
+ * Added 3 new ports - pipe_rxstatus, pipe_eyescandataerror and pipe_dmonitordout to the transceiver debug interface
+ * Added logic to power down CPLL until it is required during the PCIe link bring-up
+ * Fixed timing issue for x1gen1 configuration for Artix 7 devices
+ * Fixed data reordering issue when Narrow Burst transfer is enabled
+
+2013.3:
+ * Version 2.2
+ * Added support for shared logic
+ * Usage of PCI_USE_MODE parameter is modified as per gen2 core
+ * Added Out of Context support
+ * Added transceiver Control Debug signals
+ * Added EXT GT DRP signals to core top level
+ * Reduced warnings in synthesis and simulation
+ * Updated XDC to match IP hierarchy
+ * Added support for Cadence IES Simulator
+ * Example design added
+ * Added GES_and_Production for all 7 Series devices.
+ * Added XDC Constraints for clock inputs
+ * Added support for upgrade from previous versions
+
+2013.2:
+ * Version 2.1
+ * Updated proc_common helper IP to v4.0
+ * Solved ordering issue seen in X4G2 configuration
+ * Switch Enumeration Capability in RC Mode
+ * Solved 2nd unaligned missing completion in X4G2
+ * Enhanced IPI support
+
+2013.1:
+ * Version 2.0
+ * Updated IP GUI for IPI
+ * Corrected Data Corruption issue seen in X4G2 configurations
+ * Updated GT Wrappers
+ * Marked Kintex7 devices production
+
+(c) Copyright 2002 - 2025 Advanced Micro Devices, Inc. All rights reserved.
+
+This file contains confidential and proprietary information
+of AMD and is protected under U.S. and international copyright
+and other intellectual property laws.
+
+DISCLAIMER
+This disclaimer is not a license and does not grant any
+rights to the materials distributed herewith. Except as
+otherwise provided in a valid license issued to you by
+AMD, and to the maximum extent permitted by applicable
+law: (1) THESE MATERIALS ARE MADE AVAILABLE "AS IS" AND
+WITH ALL FAULTS, AND AMD HEREBY DISCLAIMS ALL WARRANTIES
+AND CONDITIONS, EXPRESS, IMPLIED, OR STATUTORY, INCLUDING
+BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, NON-
+INFRINGEMENT, OR FITNESS FOR ANY PARTICULAR PURPOSE; and
+(2) AMD shall not be liable (whether in contract or tort,
+including negligence, or under any other theory of
+liability) for any loss or damage of any kind or nature
+related to, arising under or in connection with these
+materials, including for any direct, or any indirect,
+special, incidental, or consequential loss or damage
+(including loss of data, profits, goodwill, or any type of
+loss or damage suffered as a result of any action brought
+by a third party) even if such damage or loss was
+reasonably foreseeable or AMD had been advised of the
+possibility of the same.
+
+CRITICAL APPLICATIONS
+AMD products are not designed or intended to be fail-
+safe, or for use in any application requiring fail-safe
+performance, such as life-support or safety devices or
+systems, Class III medical devices, nuclear facilities,
+applications related to the deployment of airbags, or any
+other applications that could lead to death, personal
+injury, or severe property or environmental damage
+(individually and collectively, "Critical
+Applications"). Customer assumes the sole risk and
+liability of any use of AMD products in Critical
+Applications, subject only to applicable laws and
+regulations governing limitations on product liability.
+
+THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
+PART OF THIS FILE AT ALL TIMES.
