@@ -58,10 +58,10 @@ module chip_top(
     input  wire [0:0]   pcie_clkin_clk_n,
     input  wire [0:0]   pcie_clkin_clk_p,
     output wire [0:0]   pcie_clkreq_l,
-    //input  wire [3:0]   pcie_mgt_rxn,
-    //input  wire [3:0]   pcie_mgt_rxp,
-    //output wire [3:0]   pcie_mgt_txn,
-    //output wire [3:0]   pcie_mgt_txp,
+    input  wire [0:0]   pcie_mgt_rxn,
+    input  wire [0:0]   pcie_mgt_rxp,
+    output wire [0:0]   pcie_mgt_txn,
+    output wire [0:0]   pcie_mgt_txp,
    
     // OSC clock input
     input  wire         sys_clk_clk_n,
@@ -110,13 +110,12 @@ module chip_top(
     //assign LED_A1 = 1'b0;
     //assign LED_A2 = 1'b1;
     //assign LED_A3 = 1'b0;
-    assign LED_A4 = 1'b0;
+    //assign LED_A4 = 1'b0;
     assign LED_M2 = 1'b0;
 
     // 200 Mhz? OSC input (was for ddr3 controller)
     logic sys_clk; // only oscillator input on the Fury
     IBUFDS  ( .O( sys_clk ), .I ( sys_clk_clk_p ), .IB( sys_clk_clk_n ) );
-
 
     // system clock reset
     logic [15:0] reset_count; // assumed init to 0 by fpga
@@ -133,6 +132,116 @@ module chip_top(
     assign LED_A2 = blink_count[25];
     assign LED_A3 = blink_count[24];
     
+    
+    ///////////////////////////
+    //  AXI-PCIe Interface
+    /////////////////////////// 
+       
+    // Output Interface Signals
+    logic user_link_up;    
+    logic axi_clk;    
+    logic axi_ctl_clk;
+    logic mmcm_lock;          
+      
+    // M-AXI Bus Definiations
+    logic        m_axi_awvalid ; logic        m_axi_arvalid ; logic        m_axi_wvalid ; logic        m_axi_rvalid ; logic        m_axi_bvalid ;    
+    logic        m_axi_awready ; logic        m_axi_arready ; logic        m_axi_wready ; logic        m_axi_rready ; logic        m_axi_bready ;    
+    logic [31:0] m_axi_awaddr  ; logic [31:0] m_axi_araddr  ; logic [63:0] m_axi_wdata  ; logic [63:0] m_axi_rdata  ; logic [1:0]  m_axi_bresp  ;
+    logic [7:0]  m_axi_awlen   ; logic [7:0]  m_axi_arlen   ; logic        m_axi_wlast  ; logic        m_axi_rlast  ; 
+    logic [2:0]  m_axi_awsize  ; logic [2:0]  m_axi_arsize  ; logic [7:0]  m_axi_wstrb  ; logic [1:0]  m_axi_rresp  ; 
+    logic [1:0]  m_axi_awburst ; logic [1:0]  m_axi_arburst ; 
+    logic [2:0]  m_axi_awprot  ; logic [2:0]  m_axi_arprot  ; 
+    logic        m_axi_awlock  ; logic        m_axi_arlock  ;     
+    logic [3:0]  m_axi_awcache ; logic [3:0]  m_axi_arcache ; 
+    
+    // PCI Clock Input buffer
+    logic REFCLK;      
+    IBUFDS_GTE2 IBUFDS_GTE2_inst (.I( pcie_clkin_clk_p ), .IB( pcie_clkin_clk_n ), .O( REFCLK ), .ODIV2( ), .CEB( 1'b0 ) );
+
+    assign LED_A4       = user_link_up;
+      
+    axi_pcie_ip i_pcie (
+        .REFCLK          ( REFCLK      ),
+        .axi_aresetn     ( 1'b1         ),
+        .user_link_up    ( user_link_up ),
+        .axi_aclk_out    ( axi_clk ),
+        .axi_ctl_aclk_out( axi_ctl_clk ),
+        .mmcm_lock       ( mmcm_lock ),
+    
+         // PCIE Links
+        .pci_exp_txp ( pcie_mgt_txp ), 
+        .pci_exp_txn ( pcie_mgt_txn ), 
+        .pci_exp_rxp ( pcie_mgt_rxp ), 
+        .pci_exp_rxn ( pcie_mgt_rxn ), 
+        
+        // MSI/.Interrupt interface
+        .interrupt_out    (   ),
+        .INTX_MSI_Request ( 0 ),
+        .INTX_MSI_Grant   (   ),
+        .MSI_enable       (   ),
+        .MSI_Vector_Num   ( 0 ),
+        .MSI_Vector_Width (   ),
+        
+        // S_AXI port, 64 R/W access to PCIe DMA direcdt access
+        // Tied off for nowbit 
+        .s_axi_awvalid ( 0 ), .s_axi_arvalid ( 0 ), .s_axi_wvalid( 0 ), .s_axi_rvalid(   ), .s_axi_bvalid(   ),
+        .s_axi_awready (   ), .s_axi_arready (   ), .s_axi_wready(   ), .s_axi_rready( 0 ), .s_axi_bready( 0 ),
+        .s_axi_awid    ( 0 ), .s_axi_arid    ( 0 ),                     .s_axi_rid   (   ), .s_axi_bid   (   ),
+        .s_axi_awaddr  ( 0 ), .s_axi_araddr  ( 0 ), .s_axi_wdata ( 0 ), .s_axi_rdata (   ), .s_axi_bresp (   ),
+        .s_axi_awlen   ( 0 ), .s_axi_arlen   ( 0 ), .s_axi_wlast ( 0 ), .s_axi_rlast (   ),
+        .s_axi_awsize  ( 0 ), .s_axi_arsize  ( 0 ), .s_axi_wstrb ( 0 ), .s_axi_rresp (   ),
+        .s_axi_awburst ( 0 ), .s_axi_arburst ( 0 ),
+        .s_axi_awregion( 0 ), .s_axi_arregion( 0 ),
+     
+        // M_AXI port, 64 bti R/W access to on chip resources
+        .m_axi_awvalid( m_axi_awvalid ), .m_axi_arvalid( m_axi_arvalid ), .m_axi_wvalid ( m_axi_wvalid  ), .m_axi_rvalid ( m_axi_rvalid  ), .m_axi_bvalid ( m_axi_bvalid  ), 
+        .m_axi_awready( m_axi_awready ), .m_axi_arready( m_axi_arready ), .m_axi_wready ( m_axi_wready  ), .m_axi_rready ( m_axi_rready  ), .m_axi_bready ( m_axi_bready  ),
+        .m_axi_awaddr ( m_axi_awaddr  ), .m_axi_araddr ( m_axi_araddr  ), .m_axi_wdata  ( m_axi_wdata   ), .m_axi_rdata  ( m_axi_rdata   ), .m_axi_bresp  ( m_axi_bresp   ),
+        .m_axi_awlen  ( m_axi_awlen   ), .m_axi_arlen  ( m_axi_arlen   ), .m_axi_wlast  ( m_axi_wlast   ), .m_axi_rlast  ( m_axi_rlast   ),
+        .m_axi_awsize ( m_axi_awsize  ), .m_axi_arsize ( m_axi_arsize  ), .m_axi_wstrb  ( m_axi_wstrb   ), .m_axi_rresp  ( m_axi_rresp   ),
+        .m_axi_awburst( m_axi_awburst ), .m_axi_arburst( m_axi_arburst ),
+        .m_axi_awprot ( m_axi_awprot  ), .m_axi_arprot ( m_axi_arprot  ),
+        .m_axi_awlock ( m_axi_awlock  ), .m_axi_arlock ( m_axi_arlock  ),
+        .m_axi_awcache( m_axi_awcache ), .m_axi_arcache( m_axi_arcache ),
+     
+         // S_AXI_CTL, 32 bit port fo rPCIe core access
+         // Tie off 
+        .s_axi_ctl_awvalid ( 0 ), .s_axi_ctl_arvalid ( 0 ), .s_axi_ctl_wvalid( 0 ), .s_axi_ctl_rvalid(   ), .s_axi_ctl_bvalid(   ),
+        .s_axi_ctl_awready (   ), .s_axi_ctl_arready (   ), .s_axi_ctl_wready(   ), .s_axi_ctl_rready( 0 ), .s_axi_ctl_bready( 0 ),
+        .s_axi_ctl_awaddr  ( 0 ), .s_axi_ctl_araddr  ( 0 ), .s_axi_ctl_wdata ( 0 ), .s_axi_ctl_rdata (   ), .s_axi_ctl_bresp (   ),
+                                                            .s_axi_ctl_wstrb ( 0 ), .s_axi_ctl_rresp (   )
+    ); 
+    
+    
+    ////////////////////////////////////
+    // AXI-M Interface 
+    ////////////////////////////////////
+       
+    // Tie off master interface data
+    assign m_axi_rdata[63:0] = 64'h0000_1234_5678_0000;
+    assign m_axi_rlast       = 1'b1;
+    assign m_axi_rresp[1:0]  = 2'b00; // OK
+    assign m_axi_bresp[1:0]  = 2'b00; // OK
+    
+   // AR transaction and R response
+   always_ff @(posedge axi_clk) begin
+        m_axi_rvalid <= ( m_axi_rready && m_axi_rvalid ) ? 1'b0 :
+                        ( m_axi_arvalid && m_axi_arready ) ? 1'b1 : m_axi_rvalid;
+   end
+   assign m_axi_arready = !m_axi_rvalid;
+
+    // AW + W transacdtion adn B response
+   always_ff @(posedge axi_clk) begin
+        m_axi_bvalid <= ( m_axi_bready && m_axi_bvalid ) ? 1'b0 :
+                        ( m_axi_awvalid && m_axi_awready && m_axi_wvalid && m_axi_wready ) ? 1'b1 : m_axi_bvalid;
+   end
+   assign m_axi_awready = !m_axi_bvalid & m_axi_awvalid & m_axi_wvalid;
+   assign m_axi_wready  = !m_axi_bvalid & m_axi_awvalid & m_axi_wvalid;
+        
+    
+    ///////////////////////////
+    // HDMI Video Output
+    ///////////////////////////     
     
     // PLL to creaet HDMI Clock
     sys_pll i_sys_pll 

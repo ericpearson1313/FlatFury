@@ -7,11 +7,11 @@
 ###############################################################################
 
 # PCIe lane 0
-#set_property LOC GTPE2_CHANNEL_X0Y7 [get_cells {Top_wrapper_i/Top_i/xdma_0/inst/Top_xdma_0_0_pcie2_to_pcie3_wrapper_i/pcie2_ip_i/inst/inst/gt_top_i/pipe_wrapper_i/pipe_lane[3].gt_wrapper_i/gtp_channel.gtpe2_channel_i}]
-#set_property PACKAGE_PIN A10 [get_ports {pcie_mgt_rxn[0]}]
-#set_property PACKAGE_PIN B10 [get_ports {pcie_mgt_rxp[0]}]
-#set_property PACKAGE_PIN A6 [get_ports {pcie_mgt_txn[0]}]
-#set_property PACKAGE_PIN B6 [get_ports {pcie_mgt_txp[0]}]
+set_property LOC GTPE2_CHANNEL_X0Y7 [get_cells {Top_wrapper_i/Top_i/xdma_0/inst/Top_xdma_0_0_pcie2_to_pcie3_wrapper_i/pcie2_ip_i/inst/inst/gt_top_i/pipe_wrapper_i/pipe_lane[3].gt_wrapper_i/gtp_channel.gtpe2_channel_i}]
+set_property PACKAGE_PIN A10 [get_ports {pcie_mgt_rxn}]
+set_property PACKAGE_PIN B10 [get_ports {pcie_mgt_rxp}]
+set_property PACKAGE_PIN A6 [get_ports {pcie_mgt_txn}]
+set_property PACKAGE_PIN B6 [get_ports {pcie_mgt_txp}]
 
 # PCIe lane 1
 #set_property LOC GTPE2_CHANNEL_X0Y6 [get_cells {Top_wrapper_i/Top_i/xdma_0/inst/Top_xdma_0_0_pcie2_to_pcie3_wrapper_i/pcie2_ip_i/inst/inst/gt_top_i/pipe_wrapper_i/pipe_lane[0].gt_wrapper_i/gtp_channel.gtpe2_channel_i}]
