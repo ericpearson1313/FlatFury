@@ -203,7 +203,7 @@ create_clock -period 5.000 -name sys_clk [get_ports sys_clk_clk_n]
 # Input reset is resynchronized within FPGA design as necessary
 set_false_path -from [get_ports pci_reset]
 set_false_path -from [get_clocks sys_clk] -to [get_clocks hdmi_clk_sys_pll]
-set_false_path -from [get_clocks axi_clk] -to [get_clocks hdmi_clk_sys_pll]
+set_false_path -from [get_clocks userclk1] -to [get_clocks hdmi_clk_sys_pll]
 
 
 

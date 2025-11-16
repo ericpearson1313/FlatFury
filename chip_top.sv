@@ -243,7 +243,7 @@ module chip_top(
 	logic [7:0][39:0] aw_hex_reg, ar_hex_reg;
 	logic [7:0][12:0] aw_bin_reg, ar_bin_reg;
 	logic [7:0][63:0]  w_hex_reg;
-	logic [7:0][63:0]  w_bin_reg;
+	logic [7:0][ 9:0]  w_bin_reg;
 	always_ff @(posedge axi_clk) begin
 		aw_hex_reg <= ( m_axi_awvalid && m_axi_awready ) ? { aw_hex_reg[6:0], { m_axi_awaddr, m_axi_awlen }} : aw_hex_reg;
 		aw_bin_reg <= ( m_axi_awvalid && m_axi_awready ) ? { aw_bin_reg[6:0], { m_axi_awsize, m_axi_awburst, m_axi_awprot, m_axi_awlock, m_axi_awcache }} : aw_bin_reg;
@@ -351,48 +351,51 @@ module chip_top(
 
 
 	// AXI Log register live Overlay Generators
-	logic [8:0] aw_ovl, ar_ovl, w_ovl;
+	logic [7:0][9:0] aw_ovl, ar_ovl, w_ovl;
 	genvar gg;
-	int row, col;
 	generate
 		for( gg = 0; gg < 10; gg++ ) begin : aw_text
-			row = gg*2 + 10;
-			col = 40;
+			int row = gg*2 + 35;
+			int col = 0;
 			// AW Log Text Overlay
 			if( gg == 0 ) begin : aw_title
-				string_overlay #(.LEN(41 )) i_id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out( aw_ovl[gg] ), .str( "AW Address  Len Size Brst Prot Lock Cache" ) );
+				string_overlay #(.LEN(41 )) i_id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out( aw_ovl[0][gg] ), .str( "AW Address  Len Size Brst Prot Lock Cache" ) );
 			end else if ( gg >= 2 ) begin : aw_fields
-				hex_overlay    #(.LEN( 8 )) i_id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out( aw_ovl[gg] ), .in( aw_hex_reg[gg-2][39-:32] ) );
-				hex_overlay    #(.LEN( 2 )) i_id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+19), .y(row), .out( aw_ovl[gg] ), .in( aw_hex_reg[gg-2][ 7-:8 ] ) );
-				bin_overlay    #(.LEN( 3 )) i_id3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+23), .y(row), .out( aw_ovl[gg] ), .in( aw_bin_reg[gg-2][12-:3 ] ) );
-				bin_overlay    #(.LEN( 2 )) i_id4(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+27), .y(row), .out( aw_ovl[gg] ), .in( aw_bin_reg[gg-2][ 9-:2 ] ) );
-				bin_overlay    #(.LEN( 3 )) i_id5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+32), .y(row), .out( aw_ovl[gg] ), .in( aw_bin_reg[gg-2][ 7-:3 ] ) );
-				bin_overlay    #(.LEN( 1 )) i_id6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+37), .y(row), .out( aw_ovl[gg] ), .in( aw_bin_reg[gg-2][ 4-:1 ] ) );
-				bin_overlay    #(.LEN( 4 )) i_id7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+42), .y(row), .out( aw_ovl[gg] ), .in( aw_bin_reg[gg-2][ 3-:4 ] ) );
+				hex_overlay    #(.LEN( 8 )) i_id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out( aw_ovl[1][gg] ), .in( aw_hex_reg[gg-2][39-:32] ) );
+				hex_overlay    #(.LEN( 2 )) i_id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+19), .y(row), .out( aw_ovl[2][gg] ), .in( aw_hex_reg[gg-2][ 7-:8 ] ) );
+				bin_overlay    #(.LEN( 3 )) i_id3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+23), .y(row), .out( aw_ovl[3][gg] ), .in( aw_bin_reg[gg-2][12-:3 ] ) );
+				bin_overlay    #(.LEN( 2 )) i_id4(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out( aw_ovl[4][gg] ), .in( aw_bin_reg[gg-2][ 9-:2 ] ) );
+				bin_overlay    #(.LEN( 3 )) i_id5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+33), .y(row), .out( aw_ovl[5][gg] ), .in( aw_bin_reg[gg-2][ 7-:3 ] ) );
+				bin_overlay    #(.LEN( 1 )) i_id6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+38), .y(row), .out( aw_ovl[6][gg] ), .in( aw_bin_reg[gg-2][ 4-:1 ] ) );
+				bin_overlay    #(.LEN( 4 )) i_id7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+43), .y(row), .out( aw_ovl[7][gg] ), .in( aw_bin_reg[gg-2][ 3-:4 ] ) );
 			end
-			// AR Log Text Overlay
-			row = gg*2 + 10;
-			col = 0;
+		end
+		// AR Log Text Overlay
+		for( gg = 0; gg < 10; gg++ ) begin : ar_text
+			int row = gg*2 + 10;
+			int col = 0;
 			if( gg == 0 ) begin : ar_title
-				string_overlay #(.LEN(41 )) i_id8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out( ar_ovl[gg] ), .str( "AR Address  Len Size Brst Prot Lock Cache" ) );
+				string_overlay #(.LEN(41 )) i_id8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out( ar_ovl[0][gg] ), .str( "AR Address  Len Size Brst Prot Lock Cache" ) );
 			end else if ( gg >= 2 ) begin : ar_fields
-				hex_overlay    #(.LEN( 8 )) i_id9(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out( ar_ovl[gg] ), .in( ar_hex_reg[gg-2][39-:32] ) );
-				hex_overlay    #(.LEN( 2 )) i_ida(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+19), .y(row), .out( ar_ovl[gg] ), .in( ar_hex_reg[gg-2][ 7-:8 ] ) );
-				bin_overlay    #(.LEN( 3 )) i_idb(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+23), .y(row), .out( ar_ovl[gg] ), .in( ar_bin_reg[gg-2][12-:3 ] ) );
-				bin_overlay    #(.LEN( 2 )) i_idc(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+27), .y(row), .out( ar_ovl[gg] ), .in( ar_bin_reg[gg-2][ 9-:2 ] ) );
-				bin_overlay    #(.LEN( 3 )) i_idd(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+32), .y(row), .out( ar_ovl[gg] ), .in( ar_bin_reg[gg-2][ 7-:3 ] ) );
-				bin_overlay    #(.LEN( 1 )) i_ide(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+37), .y(row), .out( ar_ovl[gg] ), .in( ar_bin_reg[gg-2][ 4-:1 ] ) );
-				bin_overlay    #(.LEN( 4 )) i_idf(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+42), .y(row), .out( ar_ovl[gg] ), .in( ar_bin_reg[gg-2][ 3-:4 ] ) );
+				hex_overlay    #(.LEN( 8 )) i_id9(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out( ar_ovl[1][gg] ), .in( ar_hex_reg[gg-2][39-:32] ) );
+				hex_overlay    #(.LEN( 2 )) i_ida(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+19), .y(row), .out( ar_ovl[2][gg] ), .in( ar_hex_reg[gg-2][ 7-:8 ] ) );
+				bin_overlay    #(.LEN( 3 )) i_idb(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+23), .y(row), .out( ar_ovl[3][gg] ), .in( ar_bin_reg[gg-2][12-:3 ] ) );
+				bin_overlay    #(.LEN( 2 )) i_idc(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out( ar_ovl[4][gg] ), .in( ar_bin_reg[gg-2][ 9-:2 ] ) );
+				bin_overlay    #(.LEN( 3 )) i_idd(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+33), .y(row), .out( ar_ovl[5][gg] ), .in( ar_bin_reg[gg-2][ 7-:3 ] ) );
+				bin_overlay    #(.LEN( 1 )) i_ide(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+38), .y(row), .out( ar_ovl[6][gg] ), .in( ar_bin_reg[gg-2][ 4-:1 ] ) );
+				bin_overlay    #(.LEN( 4 )) i_idf(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+43), .y(row), .out( ar_ovl[7][gg] ), .in( ar_bin_reg[gg-2][ 3-:4 ] ) );
 			end
-			// W Log Text Overlay
-			row = gg*2 + 10;
-			col = 80;
+		end
+		// W Log Text Overlay
+		for( gg = 0; gg < 10; gg++ ) begin : w_text
+			int row = gg*2 + 35;
+			int col = 42;
 			if( gg == 0 ) begin : ar_title
-	            string_overlay #(.LEN(34 )) i_idg(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out(  w_ovl[gg] ), .str( " W Write Data        Strobe   Last" ) );
+	            string_overlay #(.LEN(34 )) i_idg(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out(  w_ovl[0][gg] ), .str( " W Write Data        Strobe   Last" ) );
 			end else if ( gg >= 2 ) begin : ar_fields
-				hex_overlay    #(.LEN(16 )) i_idh(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out(  w_ovl[gg] ), .in( w_hex_reg[gg-2][63-:64] ) );
-				bin_overlay    #(.LEN( 8 )) i_idi(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+27), .y(row), .out(  w_ovl[gg] ), .in( w_bin_reg[gg-2][ 8-:8 ] ) );
-				bin_overlay    #(.LEN( 1 )) i_idj(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+36), .y(row), .out(  w_ovl[gg] ), .in( w_bin_reg[gg-2][ 0-:1 ] ) );
+				hex_overlay    #(.LEN(16 )) i_idh(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out(  w_ovl[1][gg] ), .in( w_hex_reg[gg-2][63-:64] ) );
+				bin_overlay    #(.LEN( 8 )) i_idi(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out(  w_ovl[2][gg] ), .in( w_bin_reg[gg-2][ 8-:8 ] ) );
+				bin_overlay    #(.LEN( 1 )) i_idj(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+37), .y(row), .out(  w_ovl[3][gg] ), .in( w_bin_reg[gg-2][ 0-:1 ] ) );
 			end
 		end
 	endgenerate
@@ -402,7 +405,7 @@ module chip_top(
 	logic [31:0] id_str;
 	
 	string_overlay #(.LEN(29 )) _id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 20 ), .y( 1 ), .out( id_str[0]), .str( "HDMI WVGA output 800x480x60Hz" ) );
-	string_overlay #(.LEN(14 )) _id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 20 ), .y( 3 ), .out( id_str[0]), .str( "PCIe Link Up =" ) );
+	string_overlay #(.LEN(14 )) _id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 20 ), .y( 3 ), .out( id_str[1]), .str( "PCIe Link Up =" ) );
     bin_overlay    #(.LEN(1  )) _id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x( 35 ), .y( 3 ), .out( id_str[2]), .in( user_link_up ) );
 	
 
