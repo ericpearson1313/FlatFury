@@ -7,7 +7,7 @@
 ###############################################################################
 
 # PCIe lane 0
-set_property LOC GTPE2_CHANNEL_X0Y7 [get_cells {Top_wrapper_i/Top_i/xdma_0/inst/Top_xdma_0_0_pcie2_to_pcie3_wrapper_i/pcie2_ip_i/inst/inst/gt_top_i/pipe_wrapper_i/pipe_lane[3].gt_wrapper_i/gtp_channel.gtpe2_channel_i}]
+set_property LOC GTPE2_CHANNEL_X0Y6 [get_cells {i_pcie/inst/comp_axi_enhanced_pcie/comp_enhanced_core_top_wrap/axi_pcie_enhanced_core_top_i/pcie_7x_v2_0_2_inst/pcie_top_with_gt_top.gt_ges.gt_top_i/pipe_wrapper_i/pipe_lane[0].gt_wrapper_i/gtp_channel.gtpe2_channel_i}]
 set_property PACKAGE_PIN A10 [get_ports {pcie_mgt_rxn}]
 set_property PACKAGE_PIN B10 [get_ports {pcie_mgt_rxp}]
 set_property PACKAGE_PIN A6 [get_ports {pcie_mgt_txn}]

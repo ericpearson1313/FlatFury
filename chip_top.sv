@@ -103,8 +103,6 @@ module chip_top(
     
     // Tie off PCI
     assign pcie_clkreq_l = 0;
-    assign pcie_mgt_txn  = 4'hz;
-    assign pcie_mgt_txp  = 4'hz;    
     
     // Tie off LEDs
     //assign LED_A1 = 1'b0;
@@ -131,7 +129,7 @@ module chip_top(
     assign LED_A1 = blink_count[26];
     assign LED_A2 = blink_count[25];
     assign LED_A3 = blink_count[24];
-    
+    assign LED_A4 = user_link_up;    
     
     ///////////////////////////
     //  AXI-PCIe Interface
@@ -139,7 +137,8 @@ module chip_top(
        
     // Output Interface Signals
     logic user_link_up;    
-    logic axi_clk;    
+    logic axi_clk;  
+    logic axi_reset;  
     logic axi_ctl_clk;
     logic mmcm_lock;          
       
@@ -157,12 +156,27 @@ module chip_top(
     // PCI Clock Input buffer
     logic REFCLK;      
     IBUFDS_GTE2 IBUFDS_GTE2_inst (.I( pcie_clkin_clk_p ), .IB( pcie_clkin_clk_n ), .O( REFCLK ), .ODIV2( ), .CEB( 1'b0 ) );
-
-    assign LED_A4       = user_link_up;
+     
+    // Create axi_reset, must wait 16x axi_clocks after  mmcm_lock 
+    // Make sure it does not rely upon a stable mmcm_lock beign stable. Thye can be touchy
+    logic [15:0] rst_shift;
+    always_ff@( posedge axi_clk ) begin
+        if( !pci_reset ) begin
+            rst_shift <= 16'b0000;
+        end else if( rst_shift == 16'h0000 && mmcm_lock ) begin
+            rst_shift <= 16'h0001;
+        end else if( rst_shift == 16'hFFFF ) begin
+            rst_shift <= 16'hFFFF;
+        end else if ( rst_shift != 0 ) begin
+            rst_shift <= { rst_shift[14:0], 1'b1 };
+        end
+    end
+    assign axi_reset = !rst_shift[15];
       
+    // Instantiate the generated Xilinx AXI-PCIe core
     axi_pcie_ip i_pcie (
         .REFCLK          ( REFCLK      ),
-        .axi_aresetn     ( 1'b1         ),
+        .axi_aresetn     ( !axi_reset  ),
         .user_link_up    ( user_link_up ),
         .axi_aclk_out    ( axi_clk ),
         .axi_ctl_aclk_out( axi_ctl_clk ),
@@ -243,7 +257,7 @@ module chip_top(
 	logic [7:0][39:0] aw_hex_reg, ar_hex_reg;
 	logic [7:0][12:0] aw_bin_reg, ar_bin_reg;
 	logic [7:0][63:0]  w_hex_reg;
-	logic [7:0][ 9:0]  w_bin_reg;
+	logic [7:0][ 8:0]  w_bin_reg;
 	always_ff @(posedge axi_clk) begin
 		aw_hex_reg <= ( m_axi_awvalid && m_axi_awready ) ? { aw_hex_reg[6:0], { m_axi_awaddr, m_axi_awlen }} : aw_hex_reg;
 		aw_bin_reg <= ( m_axi_awvalid && m_axi_awready ) ? { aw_bin_reg[6:0], { m_axi_awsize, m_axi_awburst, m_axi_awprot, m_axi_awlock, m_axi_awcache }} : aw_bin_reg;
