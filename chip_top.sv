@@ -281,7 +281,7 @@ module chip_top(
    assign m_axi_awready = !m_axi_bvalid & m_axi_awvalid & m_axi_wvalid;
    assign m_axi_wready  = !m_axi_bvalid & m_axi_awvalid & m_axi_wvalid;
     
-	// AXI Monitor, Log
+	// AXI-M Monitor, Log
 	// queue last 8 tranascitons of each of AW, AR, R
 	logic [7:0][39:0] aw_hex_reg, ar_hex_reg;
 	logic [7:0][12:0] aw_bin_reg, ar_bin_reg;
@@ -347,13 +347,28 @@ module chip_top(
 
     // Perf counters
     logic [47:0] ar_bytes, r_bytes;
-    logic [31:0] r_sec_bytes, ar_sec_bytes;
+    logic [31:0] r_acc_bytes, ar_acc_bytes;
+    logic [31:0] r_sec_bytes, ar_sec_bytes;    
     always @(posedge axi_clk ) begin
         ar_bytes     <= ar_bytes + ( ( s_axi_arvalid && s_axi_arready ) ? 'd2048 : 0 ); // our max burst len with 64 bit bus.
-         r_bytes     <=  r_bytes + ( ( s_axi_arvalid && s_axi_arready ) ? 'd8    : 0 );
-        ar_sec_bytes <= ( second_tick ) ? ( ( s_axi_arvalid && s_axi_arready ) ? 'd2048 : 0 ) : ar_sec_bytes + ( ( s_axi_arvalid && s_axi_arready ) ? 'd2048 : 0 );
-         r_sec_bytes <= ( second_tick ) ? ( ( s_axi_rvalid  && s_axi_rready  ) ? 'd8    : 0 ) :  r_sec_bytes + ( ( s_axi_rvalid  && s_axi_rready  ) ? 'd8    : 0 );
+         r_bytes     <=  r_bytes + ( ( s_axi_rvalid && s_axi_rready ) ? 'd8    : 0 );
+        ar_acc_bytes <= ( second_tick ) ? ( ( s_axi_arvalid && s_axi_arready ) ? 'd2048 : 0 ) : ar_acc_bytes + ( ( s_axi_arvalid && s_axi_arready ) ? 'd2048 : 0 );
+         r_acc_bytes <= ( second_tick ) ? ( ( s_axi_rvalid  && s_axi_rready  ) ? 'd8    : 0 ) :  r_acc_bytes + ( ( s_axi_rvalid  && s_axi_rready  ) ? 'd8    : 0 );
+        ar_sec_bytes <= ( second_tick ) ? ar_acc_bytes : ar_sec_bytes;
+         r_sec_bytes <= ( second_tick ) ?  r_acc_bytes :  r_sec_bytes;
     end 
+    
+    
+    // AXI-S Monitor, Log
+	// queue last 8 of  R
+
+	logic [7:0][63:0]  sr_hex_reg;
+	logic [7:0][ 6:0]  sr_bin_reg;
+	always_ff @(posedge axi_clk) begin
+		sr_hex_reg <= ( s_axi_rready && s_axi_rvalid ) ? { aw_hex_reg[6:0], { s_axi_rdata }} : aw_hex_reg;
+		sr_bin_reg <= ( s_axi_rready && s_axi_rvalid ) ? { aw_bin_reg[6:0], { s_axi_rid, s_axi_rlast, s_axi_rresp }} : aw_bin_reg;
+	end
+
 		    
     ///////////////////////////
     // HDMI Video Output
@@ -473,8 +488,8 @@ module chip_top(
         blank_del <= blank;
         xloc <= ( blank ) ? 0 : xloc + 1;
         yloc <= ( vsync & !vsync_del ) ? 0 : ( blank & !blank_del ) ? yloc + 1 : yloc;
-        if( xloc >= 294 && xloc < (294+256) && yloc >= 24 && yloc < (256+24) ) begin
-            if( xloc == 294 || xloc == 294+255 || yloc == 24 || yloc == 24+255 ) begin
+        if( xloc >= 799-256 && xloc < 799 && yloc >= 200 && yloc < (256+200) ) begin
+            if( xloc == 799-256 || xloc == 798 || yloc == 200 || yloc == 200+255 ) begin
                 window_fg <= 1;
                 window_bg <= 0;
             end else begin      
@@ -508,11 +523,11 @@ module chip_top(
 
 
     // AXI Log of M-AXIregister live Overlay Generators
-	logic [7:0][9:0] aw_ovl, ar_ovl, w_ovl;
+	logic [7:0][9:0] aw_ovl, ar_ovl, w_ovl, r_ovl;
 	genvar gg;
 	generate
 		for( gg = 0; gg < 10; gg++ ) begin : aw_text
-			int row = gg*2 + 35;
+			int row = gg + 22;
 			int col = 0;
 			// AW Log Text Overlay
 			if( gg == 0 ) begin : aw_title
@@ -529,7 +544,7 @@ module chip_top(
 		end
 		// AR Log Text Overlay
 		for( gg = 0; gg < 10; gg++ ) begin : ar_text
-			int row = gg*2 + 10;
+			int row = gg + 10;
 			int col = 0;
 			if( gg == 0 ) begin : ar_title
 				string_overlay #(.LEN(41 )) i_id8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out( ar_ovl[0][gg] ), .str( "AR Address  Len Size Brst Prot Lock Cache" ) );
@@ -545,7 +560,7 @@ module chip_top(
 		end
 		// W Log Text Overlay
 		for( gg = 0; gg < 10; gg++ ) begin : w_text
-			int row = gg*2 + 35;
+			int row = gg + 22;
 			int col = 42;
 			if( gg == 0 ) begin : ar_title
 	            string_overlay #(.LEN(34 )) i_idg(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out(  w_ovl[0][gg] ), .str( " W Write Data        Strobe   Last" ) );
@@ -555,6 +570,21 @@ module chip_top(
 				bin_overlay    #(.LEN( 1 )) i_idj(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+37), .y(row), .out(  w_ovl[3][gg] ), .in( w_bin_reg[gg-2][ 0-:1 ] ) );
 			end
 		end
+		// S R log overlay
+		// W Log Text Overlay
+		for( gg = 0; gg < 10; gg++ ) begin : sr_text
+			int row = gg + 35;
+			int col = 42;
+			if( gg == 0 ) begin : r_title
+	            string_overlay #(.LEN(35 )) i_idk(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out(  r_ovl[0][gg] ), .str( "SR Read Data         Id   Last Resp" ) );
+			end else if ( gg >= 2 ) begin : ar_fields
+				hex_overlay    #(.LEN(16 )) i_idl(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out(  r_ovl[1][gg] ), .in( sr_hex_reg[gg-2][63-:64] ) );
+				bin_overlay    #(.LEN( 4 )) i_idm(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out(  r_ovl[2][gg] ), .in( sr_bin_reg[gg-2][ 6-:4 ] ) );
+				bin_overlay    #(.LEN( 1 )) i_idn(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+33), .y(row), .out(  r_ovl[3][gg] ), .in( sr_bin_reg[gg-2][ 2-:1 ] ) );
+				bin_overlay    #(.LEN( 2 )) i_idp(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+38), .y(row), .out(  r_ovl[4][gg] ), .in( sr_bin_reg[gg-2][ 1-:2 ] ) );
+			end
+		end
+		
 	endgenerate
 
 
@@ -571,7 +601,7 @@ module chip_top(
 	// Mix overlays
 	logic overlay;
 	assign overlay = ( text_ovl && text_color == 0 ) | // normal text
-						  (|id_str) | (|aw_ovl) | (|ar_ovl) | (|w_ovl) | (|txt_str) ; // OR of Reduction ORs!
+						  (|id_str) | (|aw_ovl) | (|ar_ovl) | (|w_ovl) | (|r_ovl)| (|txt_str) ; // OR of Reduction ORs!
 	
 	// Overlay Color
 	logic [7:0] overlay_red, overlay_green, overlay_blue;
