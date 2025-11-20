@@ -365,8 +365,8 @@ module chip_top(
 	logic [7:0][63:0]  sr_hex_reg;
 	logic [7:0][ 6:0]  sr_bin_reg;
 	always_ff @(posedge axi_clk) begin
-		sr_hex_reg <= ( s_axi_rready && s_axi_rvalid ) ? { aw_hex_reg[6:0], { s_axi_rdata }} : aw_hex_reg;
-		sr_bin_reg <= ( s_axi_rready && s_axi_rvalid ) ? { aw_bin_reg[6:0], { s_axi_rid, s_axi_rlast, s_axi_rresp }} : aw_bin_reg;
+		sr_hex_reg <= ( s_axi_rready && s_axi_rvalid ) ? { aw_hex_reg[6:0], { s_axi_rdata }} : sr_hex_reg;
+		sr_bin_reg <= ( s_axi_rready && s_axi_rvalid ) ? { aw_bin_reg[6:0], { s_axi_rid, s_axi_rlast, s_axi_rresp }} : sr_bin_reg;
 	end
 
 		    
@@ -488,8 +488,8 @@ module chip_top(
         blank_del <= blank;
         xloc <= ( blank ) ? 0 : xloc + 1;
         yloc <= ( vsync & !vsync_del ) ? 0 : ( blank & !blank_del ) ? yloc + 1 : yloc;
-        if( xloc >= 799-256 && xloc < 799 && yloc >= 200 && yloc < (256+200) ) begin
-            if( xloc == 799-256 || xloc == 798 || yloc == 200 || yloc == 200+255 ) begin
+        if( xloc >= 799-256 && xloc < 799 && yloc >= 176 && yloc < (256+176) ) begin
+            if( xloc == 799-256 || xloc == 798 || yloc == 176 || yloc == 176+255 ) begin
                 window_fg <= 1;
                 window_bg <= 0;
             end else begin      
