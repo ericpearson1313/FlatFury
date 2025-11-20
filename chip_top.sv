@@ -365,8 +365,8 @@ module chip_top(
 	logic [7:0][63:0]  sr_hex_reg;
 	logic [7:0][ 6:0]  sr_bin_reg;
 	always_ff @(posedge axi_clk) begin
-		sr_hex_reg <= ( s_axi_rready && s_axi_rvalid ) ? { aw_hex_reg[6:0], { s_axi_rdata }} : sr_hex_reg;
-		sr_bin_reg <= ( s_axi_rready && s_axi_rvalid ) ? { aw_bin_reg[6:0], { s_axi_rid, s_axi_rlast, s_axi_rresp }} : sr_bin_reg;
+		sr_hex_reg <= ( s_axi_rready && s_axi_rvalid ) ? { sr_hex_reg[6:0], { s_axi_rdata }} : sr_hex_reg;
+		sr_bin_reg <= ( s_axi_rready && s_axi_rvalid ) ? { sr_bin_reg[6:0], { s_axi_rid, s_axi_rlast, s_axi_rresp }} : sr_bin_reg;
 	end
 
 		    
