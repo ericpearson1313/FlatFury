@@ -330,7 +330,7 @@ module chip_top(
             ar_enable <= 0;
         end else begin
             ar_period <= ( ar_period == 0 ) ? 32'h0010_0000 : ar_period - 1;
-            s_axi_araddr <= ( s_axi_arvalid && s_axi_arready ) ? s_axi_araddr + 32'd2048 : s_axi_araddr; // step ra by 2K
+            s_axi_araddr <= ( s_axi_arvalid && s_axi_arready ) ? ( s_axi_araddr + 32'd2048 ) : s_axi_araddr; // step ra by 2K
             s_axi_arvalid <= ( ar_period == 0 && ar_enable ) ?'b1 : ( s_axi_arvalid & s_axi_arready ) ? 1'b0 : s_axi_arvalid; // latch until accepted
             ar_enable <= ( m_axi_awvalid && m_axi_awready && m_axi_awaddr == 32'h0000_CCCC ) ? !ar_enable : ar_enable; // toggle ar_enable on write to addr CCCC
         end
@@ -458,7 +458,7 @@ module chip_top(
     always_ff @( posedge hdmi_clk ) begin
         if( vsync ) begin
             v_addr <= s_axi_araddr;
-            v_read <= s_axi_arvalid;
+            v_read <= ar_enable;
         end
     end
     
@@ -473,9 +473,14 @@ module chip_top(
         blank_del <= blank;
         xloc <= ( blank ) ? 0 : xloc + 1;
         yloc <= ( vsync & !vsync_del ) ? 0 : ( blank & !blank_del ) ? yloc + 1 : yloc;
-        if( xloc >= 282 && xloc < (282+256) && yloc >= 24 && yloc < (256+24) ) begin
-            window_fg <= 0;
-            window_bg <= 1;
+        if( xloc >= 294 && xloc < (294+256) && yloc >= 24 && yloc < (256+24) ) begin
+            if( xloc == 294 || xloc == 294+255 || yloc == 24 || yloc == 24+255 ) begin
+                window_fg <= 1;
+                window_bg <= 0;
+            end else begin      
+                window_fg <= 0;
+                window_bg <= 1;
+            end
         end else begin
             window_fg <= 0;
             window_bg <= 0;
@@ -488,9 +493,9 @@ module chip_top(
 	string_overlay #(.LEN( 7 )) i_txt0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 1 ), .out( txt_str[0] ), .str( "Seconds" ) );
 	hex_overlay    #(.LEN( 8 )) i_txt1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 1 ), .out( txt_str[1] ), .in( seconds ) );    
 	string_overlay #(.LEN( 6 )) i_txt2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 3 ), .out( txt_str[2] ), .str( "ReadEn" ) );
-	bin_overlay    #(.LEN( 1 )) i_txt3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x( 116 ), .y( 3 ), .out( txt_str[3] ), .in( v_read ) );
+	bin_overlay    #(.LEN( 3 )) i_txt3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x( 116 ), .y( 3 ), .out( txt_str[3] ), .in( { ar_enable, s_axi_arvalid, s_axi_arready } ) );
     string_overlay #(.LEN( 6 )) i_txt4(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 5 ), .out( txt_str[4] ), .str( "ARaddr" ) );
-    hex_overlay    #(.LEN( 8 )) i_txt5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 5 ), .out( txt_str[5] ), .in( v_addr ) );
+    hex_overlay    #(.LEN( 8 )) i_txt5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 5 ), .out( txt_str[5] ), .in( s_axi_araddr ) );
     
     string_overlay #(.LEN( 8 )) i_txt6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 7 ), .out( txt_str[6] ), .str( "AR bytes" ) );
     hex_overlay    #(.LEN( 12)) i_txt7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 7 ), .out( txt_str[7] ), .in( ar_bytes ) );
