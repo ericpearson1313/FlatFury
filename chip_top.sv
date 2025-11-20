@@ -123,6 +123,23 @@ module chip_top(
         sys_reset <= !(&reset_count);
     end
     
+    // System pps, timign source with 1 second toggle rate
+    logic pps;
+    logic [31:0] seconds;
+    logic [31:0] pps_counter;
+    always @(posedge sys_clk) begin 
+        if( sys_reset ) begin
+            pps <= 0;
+            pps_counter <= 32'h0;
+            seconds <= 32'h0;
+        end else begin
+            pps_counter <= ( pps_counter == (32'd200_000_000 - 1 )) ? 0 : pps_counter + 1;
+            pps <= ( pps_counter == (32'd200_000_000 - 1 ) ) ? !pps : pps;
+            seconds <= ( pps_counter == (32'd200_000_000 - 1 ) ) ? seconds + 1 : seconds;
+        end
+    end
+    
+    
     // Blink LEDs
     logic [26:0] blink_count;
     always_ff @(posedge sys_clk)  blink_count <= ( sys_reset ) ? 0 :blink_count + 1;
@@ -152,6 +169,18 @@ module chip_top(
     logic [2:0]  m_axi_awprot  ; logic [2:0]  m_axi_arprot  ; 
     logic        m_axi_awlock  ; logic        m_axi_arlock  ;     
     logic [3:0]  m_axi_awcache ; logic [3:0]  m_axi_arcache ; 
+    
+    // S-AXI Bus definitions
+    logic        s_axi_awvalid ; logic        s_axi_arvalid ; logic        s_axi_wvalid ; logic        s_axi_rvalid ; logic        s_axi_bvalid ;
+    logic        s_axi_awready ; logic        s_axi_arready ; logic        s_axi_wready ; logic        s_axi_rready ; logic        s_axi_bready ;
+    logic [3:0]  s_axi_awid    ; logic [3:0]  s_axi_arid    ;                           ; logic [3:0]  s_axi_rid    ; logic [3:0]  s_axi_bid    ;
+    logic [31:0] s_axi_awaddr  ; logic [31:0] s_axi_araddr  ; logic [63:0] s_axi_wdata  ; logic [63:0] s_axi_rdata  ; logic [1:0]  s_axi_bresp  ;
+    logic [7:0]  s_axi_awlen   ; logic [7:0]  s_axi_arlen   ; logic        s_axi_wlast  ; logic        s_axi_rlast  ; 
+    logic [2:0]  s_axi_awsize  ; logic [2:0]  s_axi_arsize  ; logic [7:0]  s_axi_wstrb  ; logic [1:0]  s_axi_rresp  ; 
+    logic [1:0]  s_axi_awburst ; logic [1:0]  s_axi_arburst ;
+    logic [3:0]  s_axi_awregion; logic [3:0]  s_axi_arregion;
+    
+    
     
     // PCI Clock Input buffer
     logic REFCLK;      
@@ -197,15 +226,15 @@ module chip_top(
         .MSI_Vector_Width (   ),
         
         // S_AXI port, 64 R/W access to PCIe DMA direcdt access
-        // Tied off for nowbit 
-        .s_axi_awvalid ( 0 ), .s_axi_arvalid ( 0 ), .s_axi_wvalid( 0 ), .s_axi_rvalid(   ), .s_axi_bvalid(   ),
-        .s_axi_awready (   ), .s_axi_arready (   ), .s_axi_wready(   ), .s_axi_rready( 0 ), .s_axi_bready( 0 ),
-        .s_axi_awid    ( 0 ), .s_axi_arid    ( 0 ),                     .s_axi_rid   (   ), .s_axi_bid   (   ),
-        .s_axi_awaddr  ( 0 ), .s_axi_araddr  ( 0 ), .s_axi_wdata ( 0 ), .s_axi_rdata (   ), .s_axi_bresp (   ),
-        .s_axi_awlen   ( 0 ), .s_axi_arlen   ( 0 ), .s_axi_wlast ( 0 ), .s_axi_rlast (   ),
-        .s_axi_awsize  ( 0 ), .s_axi_arsize  ( 0 ), .s_axi_wstrb ( 0 ), .s_axi_rresp (   ),
-        .s_axi_awburst ( 0 ), .s_axi_arburst ( 0 ),
-        .s_axi_awregion( 0 ), .s_axi_arregion( 0 ),
+        // Tied off AW, W, B busses for nowbit 
+        .s_axi_awvalid ( 0 ), .s_axi_arvalid ( s_axi_arvalid  ), .s_axi_wvalid( 0 ), .s_axi_rvalid( s_axi_rvalid  ), .s_axi_bvalid(   ),
+        .s_axi_awready (   ), .s_axi_arready ( s_axi_arready  ), .s_axi_wready(   ), .s_axi_rready( s_axi_rready  ), .s_axi_bready( 0 ),
+        .s_axi_awid    ( 0 ), .s_axi_arid    ( s_axi_arid     ),                     .s_axi_rid   ( s_axi_rid     ), .s_axi_bid   (   ),
+        .s_axi_awaddr  ( 0 ), .s_axi_araddr  ( s_axi_araddr   ), .s_axi_wdata ( 0 ), .s_axi_rdata ( s_axi_rdata   ), .s_axi_bresp (   ),
+        .s_axi_awlen   ( 0 ), .s_axi_arlen   ( s_axi_arlen    ), .s_axi_wlast ( 0 ), .s_axi_rlast ( s_axi_rlast   ),
+        .s_axi_awsize  ( 0 ), .s_axi_arsize  ( s_axi_arsize   ), .s_axi_wstrb ( 0 ), .s_axi_rresp ( s_axi_rresp   ),
+        .s_axi_awburst ( 0 ), .s_axi_arburst ( s_axi_arburst  ),
+        .s_axi_awregion( 0 ), .s_axi_arregion( s_axi_arregion ),
      
         // M_AXI port, 64 bti R/W access to on chip resources
         .m_axi_awvalid( m_axi_awvalid ), .m_axi_arvalid( m_axi_arvalid ), .m_axi_wvalid ( m_axi_wvalid  ), .m_axi_rvalid ( m_axi_rvalid  ), .m_axi_bvalid ( m_axi_bvalid  ), 
@@ -266,6 +295,65 @@ module chip_top(
 		w_hex_reg  <= ( m_axi_wvalid  && m_axi_wready  ) ? { w_hex_reg[6:0] , { m_axi_wdata }} : w_hex_reg;
 		w_bin_reg  <= ( m_axi_wvalid  && m_axi_wready  ) ? { w_bin_reg[6:0] , { m_axi_wstrb, m_axi_wlast }} : w_bin_reg;
 	end
+		    
+		    
+	///////////////////////////
+	// AXI-S Pcie Master DMA
+	///////////////////////////
+	// Initially a full read scan of memory
+	// Incrementing by 4K walk and read full 4G of memory
+	// The host memory of the PCIe root should reside at base address 64'h0
+    // Monitor the address visually on screen
+    // For now just accept all read data and discard.
+    
+    
+    // R transactions
+    assign s_axi_rready = 1'b1; // accept all read data immediately.
+    
+    // AR transactions
+    	
+    // Fixed values
+	assign s_axi_arid     = 4'h0;    
+	assign s_axi_arlen    = 8'hFF; // maximum axi 256 cycle burst of 8 bytes gives a 2kbyte burst
+	assign s_axi_arsize   = 3'b011; // 64 bits, 8 bytes
+	assign s_axi_arburst  = 2'b01;  // INCR
+	assign s_axi_arregion = 4'h0;
+	
+    // Incrementing address at fixed rate
+    logic [31:0] ar_period;
+    logic ar_enable;
+    always_ff @(posedge axi_clk) begin
+        if( axi_reset ) begin
+            s_axi_araddr <= 32'h0;
+            s_axi_arvalid <= 1'b0;
+            ar_period <= 32'h0010_0000; // every X cycles set valid 
+            ar_enable <= 0;
+        end else begin
+            ar_period <= ( ar_period == 0 ) ? 32'h0010_0000 : ar_period - 1;
+            s_axi_araddr <= ( s_axi_arvalid && s_axi_arready ) ? s_axi_araddr + 32'd2048 : s_axi_araddr; // step ra by 2K
+            s_axi_arvalid <= ( ar_period == 0 && ar_enable ) ?'b1 : ( s_axi_arvalid & s_axi_arready ) ? 1'b0 : s_axi_arvalid; // latch until accepted
+            ar_enable <= ( m_axi_awvalid && m_axi_awready && m_axi_awaddr == 32'h0000_CCCC ) ? !ar_enable : ar_enable; // toggle ar_enable on write to addr CCCC
+        end
+    end
+    
+
+    // PPS to second_tick
+    logic second_tick;
+    logic [2:0] c2c_pps;
+    always_ff @( posedge axi_clk ) begin
+        c2c_pps[2:0] <= { c2c_pps[1:0], pps };
+        second_tick <= c2c_pps[2] ^ c2c_pps[1];
+    end  
+
+    // Perf counters
+    logic [47:0] ar_bytes, r_bytes;
+    logic [31:0] r_sec_bytes, ar_sec_bytes;
+    always @(posedge axi_clk ) begin
+        ar_bytes     <= ar_bytes + ( ( s_axi_arvalid && s_axi_arready ) ? 'd2048 : 0 ); // our max burst len with 64 bit bus.
+         r_bytes     <=  r_bytes + ( ( s_axi_arvalid && s_axi_arready ) ? 'd8    : 0 );
+        ar_sec_bytes <= ( second_tick ) ? ( ( s_axi_arvalid && s_axi_arready ) ? 'd2048 : 0 ) : ar_sec_bytes + ( ( s_axi_arvalid && s_axi_arready ) ? 'd2048 : 0 );
+         r_sec_bytes <= ( second_tick ) ? ( ( s_axi_rvalid  && s_axi_rready  ) ? 'd8    : 0 ) :  r_sec_bytes + ( ( s_axi_rvalid  && s_axi_rready  ) ? 'd8    : 0 );
+    end 
 		    
     ///////////////////////////
     // HDMI Video Output
@@ -340,7 +428,7 @@ module chip_top(
 		.hsync( hsync ),
 		.vsync( vsync ),
 		.red	( test_red   ),
-		.green( test_green ),
+		.green  ( test_green ),
 		.blue	( test_blue  )
 	);	
 	
@@ -363,8 +451,58 @@ module chip_top(
 		.color( text_color )
 	);
 
+    // Monitor S-AXI RA prot, latched at vsync
+    logic [31:0] v_addr;
+    logic        v_read;
+    // sample during vsync
+    always_ff @( posedge hdmi_clk ) begin
+        if( vsync ) begin
+            v_addr <= s_axi_araddr;
+            v_read <= s_axi_arvalid;
+        end
+    end
+    
+    // Overlay 256x256 window
+    logic window_fg;
+    logic window_bg;
+    logic [9:0] xloc, yloc;
+    logic vsync_del;
+    logic blank_del;
+    always_ff @(posedge hdmi_clk ) begin
+        vsync_del <= vsync;
+        blank_del <= blank;
+        xloc <= ( blank ) ? 0 : xloc + 1;
+        yloc <= ( vsync & !vsync_del ) ? 0 : ( blank & !blank_del ) ? yloc + 1 : yloc;
+        if( xloc >= 282 && xloc < (282+256) && yloc >= 24 && yloc < (256+24) ) begin
+            window_fg <= 0;
+            window_bg <= 1;
+        end else begin
+            window_fg <= 0;
+            window_bg <= 0;
+        end
+    end
+        
+    
+    // Ovelay dynamic text
+    logic [13:0] txt_str;
+	string_overlay #(.LEN( 7 )) i_txt0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 1 ), .out( txt_str[0] ), .str( "Seconds" ) );
+	hex_overlay    #(.LEN( 8 )) i_txt1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 1 ), .out( txt_str[1] ), .in( seconds ) );    
+	string_overlay #(.LEN( 6 )) i_txt2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 3 ), .out( txt_str[2] ), .str( "ReadEn" ) );
+	bin_overlay    #(.LEN( 1 )) i_txt3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x( 116 ), .y( 3 ), .out( txt_str[3] ), .in( v_read ) );
+    string_overlay #(.LEN( 6 )) i_txt4(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 5 ), .out( txt_str[4] ), .str( "ARaddr" ) );
+    hex_overlay    #(.LEN( 8 )) i_txt5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 5 ), .out( txt_str[5] ), .in( v_addr ) );
+    
+    string_overlay #(.LEN( 8 )) i_txt6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 7 ), .out( txt_str[6] ), .str( "AR bytes" ) );
+    hex_overlay    #(.LEN( 12)) i_txt7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 7 ), .out( txt_str[7] ), .in( ar_bytes ) );
+    string_overlay #(.LEN( 8 )) i_txt8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 9 ), .out( txt_str[8] ), .str( " R bytes" ) );
+    hex_overlay    #(.LEN( 12)) i_txt9(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 9 ), .out( txt_str[9] ), .in(  r_bytes ) );
+    string_overlay #(.LEN( 8 )) i_txta(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 11), .out( txt_str[10]), .str( "ARbyte/s" ) );
+    hex_overlay    #(.LEN( 8 )) i_txtb(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 11), .out( txt_str[11]), .in( ar_sec_bytes ) );
+    string_overlay #(.LEN( 8 )) i_txtc(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 13), .out( txt_str[12]), .str( " Rbyte/s" ) );
+    hex_overlay    #(.LEN( 8 )) i_txtd(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 13), .out( txt_str[13]), .in(  r_sec_bytes ) );
 
-	// AXI Log register live Overlay Generators
+
+    // AXI Log of M-AXIregister live Overlay Generators
 	logic [7:0][9:0] aw_ovl, ar_ovl, w_ovl;
 	genvar gg;
 	generate
@@ -418,20 +556,24 @@ module chip_top(
 	// Overlay Text - Dynamic
 	logic [31:0] id_str;
 	
-	string_overlay #(.LEN(29 )) _id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 20 ), .y( 1 ), .out( id_str[0]), .str( "HDMI WVGA output 800x480x60Hz" ) );
-	string_overlay #(.LEN(14 )) _id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 20 ), .y( 3 ), .out( id_str[1]), .str( "PCIe Link Up =" ) );
-    bin_overlay    #(.LEN(1  )) _id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x( 35 ), .y( 3 ), .out( id_str[2]), .in( user_link_up ) );
+	string_overlay #(.LEN(29 )) i_id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 20 ), .y( 1 ), .out( id_str[0]), .str( "HDMI WVGA output 800x480x60Hz" ) );
+	string_overlay #(.LEN(14 )) i_id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 20 ), .y( 3 ), .out( id_str[1]), .str( "PCIe Link Up =" ) );
+    bin_overlay    #(.LEN(1  )) i_id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x( 35 ), .y( 3 ), .out( id_str[2]), .in( user_link_up ) );
+    
+
 	
 
 	// Mix overlays
 	logic overlay;
 	assign overlay = ( text_ovl && text_color == 0 ) | // normal text
-						  (|id_str) | (|aw_ovl) | (|ar_ovl) | (|w_ovl); // OR of Reduction ORs!
+						  (|id_str) | (|aw_ovl) | (|ar_ovl) | (|w_ovl) | (|txt_str) ; // OR of Reduction ORs!
 	
 	// Overlay Color
 	logic [7:0] overlay_red, overlay_green, overlay_blue;
 	assign { overlay_red, overlay_green, overlay_blue } =
-			( overlay ) ? 24'hFFFFFF :
+			( overlay   ) ? 24'hFFFFFF :
+			( window_fg ) ? 24'h00c0c0 /* smpte_turquise_surf */ :
+			( window_bg ) ? 24'h1d1d1d /* smpte_eerie_black   */ :
 			( text_ovl && text_color == 4'h1 ) ? 24'hf00000 :
 			( text_ovl && text_color == 4'h2 ) ? 24'hFFFFFF :
 			( text_ovl && text_color == 4'h3 ) ? 24'hff0000 :			
@@ -466,9 +608,9 @@ module chip_top(
 		// YUV mode input
 		.yuv_mode		( 0 ), // use YUV2 mode, cheap USb capture devices provice lossless YUV2 capture mode 
 		// RBG Data
-		.red   ( test_red   | overlay_red   ),
-		.green ( test_green | overlay_green ),
-		.blue  ( test_blue  | overlay_blue  ),
+		.red   ( ( window_fg | window_bg ) ? overlay_red   : ( test_red   | overlay_red  )  ),
+		.green ( ( window_fg | window_bg ) ? overlay_green : ( test_green | overlay_green) ),
+		.blue  ( ( window_fg | window_bg ) ? overlay_blue  : ( test_blue  | overlay_blue ) ),
 		// HDMI and DVI encoded video
 		.hdmi_data( hdmi_data ),
 		.dvi_data( dvi_data )
