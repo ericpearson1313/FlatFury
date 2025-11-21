@@ -36,4 +36,18 @@ and the 3 associated W write data trasfers. All looks good (and note the waterma
 ![pcie_awake](pcie_awake.jpg)
 
 
+Using the following commands to enable the fpga pcie endpoint and start a DMA read of memory.
+
+    sudo setpci -s 0001:01:00.0 COMMAND=0x6
+    sudo ./pcimem /sys/bus/pci/devices/0001\:01\:00.0/resource0 0xcccc d 0x123
+
+THe picture shows the performance meters working (DMA is throttle currently to ~0.25 mbyte/sec).
+However there is still some work to go as the read data itself is DEADDEAD... The issue is the AXI to PCIE 
+address mapping I suspect. (I wish the IP supported a 64 bit AXI address). The 256 x 256 window is to show a
+memory map with each pel representing 64Kbytes. This way I can show read progress of the full 4G Pi5 dram and mark
+*interesting* addresses.
+
+![pcie_debug](b771e17.jpg)
+
+I'm 
 
