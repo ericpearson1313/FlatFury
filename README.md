@@ -49,5 +49,8 @@ memory map with each pel representing 64Kbytes. This way I can show read progres
 
 ![pcie_debug](b771e17.jpg)
 
-I'm 
+Adding logic to set the 64 bit PCIe base address enabled read access to the full host memory. Upping the speed we measure 17cdf000 = 400 Mbytes/sec.
+At this rate it takes 10 seconds to read the full 4Gbytes of pi5 host memory. Nice for a single 5Gbit pcie lane.
+
+![pcie_400MBps](8f9cd01.jpg)
 
