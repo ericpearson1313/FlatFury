@@ -180,7 +180,11 @@ module chip_top(
     logic [1:0]  s_axi_awburst ; logic [1:0]  s_axi_arburst ;
     logic [3:0]  s_axi_awregion; logic [3:0]  s_axi_arregion;
     
-    
+    // S-AXI CTRL control bus defiitions
+    logic        s_axi_ctl_awvalid ; logic        s_axi_ctl_arvalid ; logic        s_axi_ctl_wvalid ; logic        s_axi_ctl_rvalid ; logic        s_axi_ctl_bvalid ;
+    logic        s_axi_ctl_awready ; logic        s_axi_ctl_arready ; logic        s_axi_ctl_wready ; logic        s_axi_ctl_rready ; logic        s_axi_ctl_bready ;
+    logic [31:0] s_axi_ctl_awaddr  ; logic [31:0] s_axi_ctl_araddr  ; logic [63:0] s_axi_ctl_wdata  ; logic [63:0] s_axi_ctl_rdata  ; logic [1:0]  s_axi_ctl_bresp  ;
+                                                                      logic [ 3:0] s_axi_ctl_wstrb  ; logic [1:0]  s_axi_ctl_rresp  ; 
     
     // PCI Clock Input buffer
     logic REFCLK;      
@@ -249,12 +253,34 @@ module chip_top(
      
          // S_AXI_CTL, 32 bit port for PCIe core access
          // Tie off 
-        .s_axi_ctl_awvalid ( 0 ), .s_axi_ctl_arvalid ( 0 ), .s_axi_ctl_wvalid( 0 ), .s_axi_ctl_rvalid(   ), .s_axi_ctl_bvalid(   ),
-        .s_axi_ctl_awready (   ), .s_axi_ctl_arready (   ), .s_axi_ctl_wready(   ), .s_axi_ctl_rready( 0 ), .s_axi_ctl_bready( 0 ),
-        .s_axi_ctl_awaddr  ( 0 ), .s_axi_ctl_araddr  ( 0 ), .s_axi_ctl_wdata ( 0 ), .s_axi_ctl_rdata (   ), .s_axi_ctl_bresp (   ),
-                                                            .s_axi_ctl_wstrb ( 0 ), .s_axi_ctl_rresp (   )
+        .s_axi_ctl_awvalid ( s_axi_ctl_awvalid ), .s_axi_ctl_arvalid ( s_axi_ctl_arvalid ), .s_axi_ctl_wvalid( s_axi_ctl_wvalid ), .s_axi_ctl_rvalid( s_axi_ctl_rvalid ), .s_axi_ctl_bvalid( s_axi_ctl_bvalid ),
+        .s_axi_ctl_awready ( s_axi_ctl_awready ), .s_axi_ctl_arready ( s_axi_ctl_arready ), .s_axi_ctl_wready( s_axi_ctl_wready ), .s_axi_ctl_rready( s_axi_ctl_rready ), .s_axi_ctl_bready( s_axi_ctl_bready ),
+        .s_axi_ctl_awaddr  ( s_axi_ctl_awaddr  ), .s_axi_ctl_araddr  ( s_axi_ctl_araddr  ), .s_axi_ctl_wdata ( s_axi_ctl_wdata  ), .s_axi_ctl_rdata ( s_axi_ctl_rdata  ), .s_axi_ctl_bresp ( s_axi_ctl_bresp  ),
+                                                                                            .s_axi_ctl_wstrb ( s_axi_ctl_wstrb  ), .s_axi_ctl_rresp ( s_axi_ctl_rresp  )
     ); 
-    
+ 
+    ////////////////////////////////////
+    // AXI-S CTL Interface 
+    ////////////////////////////////////
+    // uses to set the AXI2PCIE mapping
+    // the tool does not seem to support 64bi tpcie addresses, 
+    // AXI BAR0 is 2G from 0x0000_0000 to 0x7FFF_FFFF
+    // AXI BAR1 is 2G from 0x8000_0000 to 0xFFFF_FFFF
+    // so we will set them thru this port
+    // 0x208 31-0 AXIBAR2PCIEBAR_0U = 32'h0000_0010;
+    // 0x20C 31-0 AXIBAR2PCIEBAR_0L = 32'h0000_0000;
+    // 0x210 31-0 AXIBAR2PCIEBAR_1U = 32'h0000_0010;
+    // 0x214 31-0 AXIBAR2PCIEBAR_1L = 32'h8000_0000;
+    // Tie off for now and look into setting these registers via PCIE ECAM accesses
+    assign s_axi_ctl_awvalid    =  1'b0;
+    assign s_axi_ctl_awaddr     = 32'h0;
+    assign s_axi_ctl_arvalid    =  1'b0;
+    assign s_axi_ctl_araddr     = 32'h0;
+    assign s_axi_ctl_wvalid     =  1'b0;
+    assign s_axi_ctl_wdata      = 32'h0;
+    assign s_axi_ctl_wstrb      =  4'h0;
+    assign s_axi_ctl_rready     =  1'b1; 
+    assign s_axi_ctl_bready     =  1'b1;
     
     ////////////////////////////////////
     // AXI-M Interface 
@@ -478,6 +504,8 @@ module chip_top(
     end
     
     // Overlay 256x256 window
+    localparam WINX = 799-256;
+    localparam WINY = 200-24;
     logic window_fg;
     logic window_bg;
     logic [9:0] xloc, yloc;
@@ -488,8 +516,11 @@ module chip_top(
         blank_del <= blank;
         xloc <= ( blank ) ? 0 : xloc + 1;
         yloc <= ( vsync & !vsync_del ) ? 0 : ( blank & !blank_del ) ? yloc + 1 : yloc;
-        if( xloc >= 799-256 && xloc < 799 && yloc >= 176 && yloc < (256+176) ) begin
-            if( xloc == 799-256 || xloc == 798 || yloc == 176 || yloc == 176+255 ) begin
+        if( xloc >= WINX && xloc < WINX+256 && yloc >= WINY && yloc < WINY+256 ) begin // Inside the window
+            if( v_read && xloc-WINX == v_addr[23:16] || v_read && yloc-WINY == v_addr[31:24] ) begin
+                window_fg <= 1;
+                window_bg <= 0;
+            end else if( xloc == WINX || xloc == WINX+255 || yloc == WINY || yloc == WINY+255 ) begin
                 window_fg <= 1;
                 window_bg <= 0;
             end else begin      
