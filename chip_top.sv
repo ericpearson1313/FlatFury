@@ -272,16 +272,34 @@ module chip_top(
     // 0x210 31-0 AXIBAR2PCIEBAR_1U = 32'h0000_0010;
     // 0x214 31-0 AXIBAR2PCIEBAR_1L = 32'h8000_0000;
     // Tie off for now and look into setting these registers via PCIE ECAM accesses
-    assign s_axi_ctl_awvalid    =  1'b0;
-    assign s_axi_ctl_awaddr     = 32'h0;
     assign s_axi_ctl_arvalid    =  1'b0;
     assign s_axi_ctl_araddr     = 32'h0;
-    assign s_axi_ctl_wvalid     =  1'b0;
-    assign s_axi_ctl_wdata      = 32'h0;
-    assign s_axi_ctl_wstrb      =  4'h0;
+    assign s_axi_ctl_wstrb      =  4'b1111;
     assign s_axi_ctl_rready     =  1'b1; 
     assign s_axi_ctl_bready     =  1'b1;
     
+    // Addresses, data pairs for the 4 init writes on the axi-lite control port
+    logic [0:3][0:1][31:0] init_writes = { 32'h0000_1208, 32'h0000_0010, 32'h0000_120C, 32'h0000_000, 32'h0000_1210, 32'h0000_0010, 32'h0000_1214, 32'h8000_0000 };
+    
+    // 4 Write cycles of: 
+    // init_count[0] = 0 then set addr, data bus and set awvalid and wvalid 
+    // init_count[0] = 1 then when awready or wready seen, wait  both drop go onto next write, 
+    
+    logic [2:0] init_count;
+    always_ff @(posedge axi_clk) begin
+        if( axi_reset ) begin
+            init_count <= 0;
+            s_axi_ctl_awvalid <= 0;
+            s_axi_ctl_wvalid <= 0;
+        end else begin
+            init_count <= ( init_count == 8 ) ? 8 : ( !init_count[0] || (!s_axi_ctl_awvalid && !s_axi_ctl_wvalid )) ? init_count+1 : init_count;
+            s_axi_ctl_awaddr <= init_writes[init_count[2:1]][0];
+            s_axi_ctl_wdata  <= init_writes[init_count[2:1]][1];           
+            s_axi_ctl_awvalid <= ( s_axi_ctl_awvalid & s_axi_ctl_awready ) ? 1'b0 : (!init_count[0] && init_count != 8) ? 1'b1 : s_axi_ctl_awvalid;
+            s_axi_ctl_wvalid  <= ( s_axi_ctl_wvalid  & s_axi_ctl_wready  ) ? 1'b0 : (!init_count[0] && init_count != 8) ? 1'b1 : s_axi_ctl_wvalid;
+        end
+    end
+       
     ////////////////////////////////////
     // AXI-M Interface 
     ////////////////////////////////////
