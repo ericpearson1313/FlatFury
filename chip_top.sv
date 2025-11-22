@@ -370,10 +370,10 @@ module chip_top(
         if( axi_reset ) begin
             s_axi_araddr <= 32'h0;
             s_axi_arvalid <= 1'b0;
-            ar_period <= 32'h0010_0000; // every X cycles set valid 
+            ar_period <= 32'h0000_A000; // every X cycles set valid 
             ar_enable <= 0;
         end else begin
-            ar_period <= ( ar_period == 0 ) ? 32'h0010_0000 : ar_period - 1;
+            ar_period <= ( ar_period == 0 ) ? 32'h0000_A000 : ar_period - 1;
             s_axi_araddr <= ( s_axi_arvalid && s_axi_arready ) ? ( s_axi_araddr + 32'd2048 ) : s_axi_araddr; // step ra by 2K
             s_axi_arvalid <= ( ar_period == 0 && ar_enable ) ?'b1 : ( s_axi_arvalid & s_axi_arready ) ? 1'b0 : s_axi_arvalid; // latch until accepted
             ar_enable <= ( m_axi_awvalid && m_axi_awready && m_axi_awaddr == 32'h0000_CCCC ) ? !ar_enable : ar_enable; // toggle ar_enable on write to addr CCCC
