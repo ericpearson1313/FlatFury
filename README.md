@@ -13,7 +13,7 @@ the core HDMI graphics and text output.
 Looking at the Floorplan we can observe (yellow) the minimal AXI-PCIe 1x 5g core reported 15% LE utilization. 
 The HDMI core (magneta) is quite tiny for its usefulness!
 
-![min_axi_pcie](min_axi_pcie.png)
+![min_axi_pcie](img/min_axi_pcie.png)
 
 Now is time to bring up the pcie hardware. It proved helpful to add logic to capture the last eight (8) PCIe AXI transactions,
 on each of the AXI-AR, AXI-AW, AXI-W busses to be able to prove exact operation. The busses were wired with simple handshake
