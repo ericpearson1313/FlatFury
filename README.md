@@ -1,8 +1,10 @@
 # FlatFury
 
 My xilinx Artix-7 dev system for PCIe devlopment. It uses a LiteFury mounted to a raspberry Pi5 with M.2 slot.
-I've incorporated my standard HDMI video output. I've brought up the pcie interface
-without drivers directly accessing via: lspci, setpci, pcimem commands.
+I've incorporated my standard HDMI video output. It makes a compact little pcie development platform in which 
+I've brought up the pcie interface without drivers directly accessing via: lspci, setpci, pcimem commands.
+
+![dev_platform](img/litefury_rpi5_hdmi.jpg)
 
 This repo builds upon the LiteFury basis but with a greatly simplified flat file hierarchy.
 Its all system verilog and integrates a PCIe core and PLL ip modules (ungenerated) along with
@@ -33,7 +35,7 @@ using the pcimem command (from https://github.com/billfarrow/pcimem) to do the a
 After running the commands the HDMI display shows the 6 RA read address transactions and the 3 AW write address transactions
 and the 3 associated W write data trasfers. All looks good (and note the watermark).
 
-![pcie_awake](pcie_awake.jpg)
+![pcie_awake](img/pcie_awake.jpg)
 
 
 Using the following commands to enable the fpga pcie endpoint and start a DMA read of memory.
@@ -47,10 +49,10 @@ address mapping I suspect. (I wish the IP supported a 64 bit AXI address). The 2
 memory map with each pel representing 64Kbytes. This way I can show read progress of the full 4G Pi5 dram and mark
 *interesting* addresses.
 
-![pcie_debug](b771e17.jpg)
+![pcie_debug](img/b771e17.jpg)
 
 Adding logic to set the 64 bit PCIe base address enabled read access to the full host memory. Upping the speed we measure 17cdf000 = 400 Mbytes/sec.
 At this rate it takes 10 seconds to read the full 4Gbytes of pi5 host memory. Nice for a single 5Gbit pcie lane.
 
-![pcie_400MBps](8f9cd01.jpg)
+![pcie_400MBps](img/8f9cd01.jpg)
 
