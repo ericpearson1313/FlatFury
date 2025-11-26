@@ -56,3 +56,15 @@ At this rate it takes 10 seconds to read the full 4Gbytes of pi5 host memory. Ni
 
 ![pcie_400MBps](img/8f9cd01.jpg)
 
+Now that we have direct access to the host PI's dram a simple demo can be developed to display images stored in the host memory.
+A small piece of code (bmp_read.c) isused to load a 24-bit rgb .bmp file into memory, and provide a single physical address to the console, and then wait i
+(holding the image in memory, hopefully not be swapped out, need to look for meachanism to ensure its not).
+
+    $ cc bmp_read.c -o bmp_read
+    $ sudo ./bmp_read
+    Reading img/test.bmp, 256x256 rgb24 image into memory
+    Build physical rat (row address table)
+    Rat addr: 145d4000
+    Press enter key to exit
+
+plan:  update the fpga to display this image, continuously loading the rat table during vsync and reading the RGB data to display in the 256x256 window.
