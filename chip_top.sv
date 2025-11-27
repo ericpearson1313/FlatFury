@@ -344,6 +344,8 @@ module chip_top(
 	///////////////////////////
 	// AXI-S Pcie Master DMA
 	///////////////////////////
+	
+	// Read video and display in our 256x256 window
 	// Initially a full read scan of memory
 	// Incrementing by 4K walk and read full 4G of memory
 	// The host memory of the PCIe root should reside at base address 64'h0
@@ -363,25 +365,86 @@ module chip_top(
 	assign s_axi_arburst  = 2'b01;  // INCR
 	assign s_axi_arregion = 4'h0;
 	
-    // Incrementing address at fixed rate
-    logic [31:0] ar_period;
-    logic ar_enable;
+	
+	// Capture RAT address writes on the M-AXI bus, and toggle enable
+	logic ar_enable;
+	logic [31:0] rat_addr;
     always_ff @(posedge axi_clk) begin
         if( axi_reset ) begin
-            s_axi_araddr <= 32'h0;
-            s_axi_arvalid <= 1'b0;
-            ar_period <= 32'h0000_0280; // every X cycles set valid 
             ar_enable <= 0;
+            rat_addr <= 0;
         end else begin
-            ar_period <= ( ar_period == 0 ) ? 32'h0000_0280 : ar_period - 1;
-            s_axi_araddr <= ( s_axi_arvalid && s_axi_arready ) ? ( s_axi_araddr + 32'd2048 ) : s_axi_araddr; // step ra by 2K
-            s_axi_arvalid <= ( ar_period == 0 && ar_enable ) ?'b1 : ( s_axi_arvalid & s_axi_arready ) ? 1'b0 : s_axi_arvalid; // latch until accepted
-            ar_enable <= ( m_axi_awvalid && m_axi_awready && m_axi_awaddr == 32'h0000_CCCC ) ? !ar_enable : ar_enable; // toggle ar_enable on write to addr CCCC
+            if( ( m_axi_awvalid && m_axi_awready && 
+                  m_axi_wvalid  && m_axi_wready  && 
+                  m_axi_awaddr == 32'h0000_CCCC ) ) begin
+                rat_addr <= m_axi_wdata[63-:32]; // msb word
+                ar_enable <= 1;
+            end
         end
     end
-    
+	
+	// State machine for AXI-S DMA reads
+    localparam S_IDLE       = 0;
+    localparam S_ADDR_RAT   = 2;
+    localparam S_LOAD_RAT   = 3;
+    localparam S_ADDR_ROW   = 4;
+    localparam S_LOAD_ROW   = 5;
+    localparam S_WAIT_ROW   = 6;
 
-    // PPS to second_tick
+    logic [3:0] state;
+    logic [7:0] row_cnt, col_cnt;
+    logic [3:0] vsync_c2c, win_c2c;
+    always_ff @(posedge axi_clk) begin
+        if( axi_reset ) begin
+            state <= S_IDLE;
+            vsync_c2c <= 0;
+            win_c2c <= 0;
+            row_cnt <= 0;
+            col_cnt <= 0;
+        end else begin
+            vsync_c2c[3:0] <= {!vsync_c2c[2] & vsync_c2c[1], vsync_c2c[1:0], vsync }; // hdmmi vsync rise edge det after c2c, to start rat read.
+            win_c2c[3:0]   <= {  win_c2c[2] &  !win_c2c[1],   win_c2c[1:0], win256}; // hdmi window falling edge after c2c, earliest moment to read next row
+            case( state ) 
+                S_IDLE     : begin state <= ( ar_enable & vsync_c2c[3]                    ) ? S_ADDR_RAT : S_IDLE    ; end
+                S_ADDR_RAT : begin state <= ( s_axi_arvalid && s_axi_arready              ) ? S_LOAD_RAT : S_ADDR_RAT; end
+                S_LOAD_RAT : begin state <= ( s_axi_rvalid  && s_axi_rready && s_axi_rlast ) ? S_ADDR_ROW : S_LOAD_RAT; end
+                S_ADDR_ROW : begin state <= ( s_axi_arvalid && s_axi_arready              ) ? S_LOAD_ROW : S_ADDR_ROW; end
+                S_LOAD_ROW : begin state <= ( s_axi_rvalid  && s_axi_rready && s_axi_rlast ) ? S_WAIT_ROW : S_LOAD_ROW; end
+                S_WAIT_ROW : begin state <= ( win_c2c[3] && row_cnt == 0 ) ? S_IDLE : ( win_c2c[3] ) ? S_ADDR_ROW : S_WAIT_ROW; end
+            endcase
+	        row_cnt <= ( state == S_IDLE ) ? 0 : ( s_axi_arvalid && s_axi_arready && state == S_ADDR_ROW ) ? row_cnt+1 : row_cnt; // row address incremented as soon as used
+	        col_cnt <= ( s_axi_rvalid  && s_axi_rready && s_axi_rlast ) ? 0 : ( s_axi_rvalid  && s_axi_rready ) ? col_cnt + 1 : col_cnt;
+	    end
+	end
+	
+    // Row address table
+    logic [31:0] rat [0:255]; // Row address table memory
+    logic [31:0] mapped;
+    always_ff @(posedge axi_clk) begin
+        if( s_axi_rvalid  && s_axi_rready && state == S_LOAD_RAT ) // write rat
+            rat[col_cnt] <= { s_axi_rdata[31:11], 11'h000 }; // always 2K aligned
+        mapped <= rat[row_cnt]; // rat read address 
+    end
+    
+    // RGB Row buffer
+    // write on AXI clock (and will read below in hdmi section
+    logic [23:0] row_mem [0:255];
+    logic [23:0] rgb_img;
+    logic [ 7:0] vid_cnt;
+    always_ff @(posedge axi_clk) begin
+        if( s_axi_rvalid  && s_axi_rready && state == S_LOAD_RAT )
+            row_mem[col_cnt] <= s_axi_rdata[63-:24];
+    end        
+    always_ff @(posedge hdmi_clk) begin // read on video clock
+        vid_cnt <= ( win256 ) ? vid_cnt + 1 : 0;
+        rgb_img <= row_mem[vid_cnt];
+    end
+        
+    // AR transaction 
+    assign s_axi_araddr = ( state == S_ADDR_RAT ) ? rat_addr : mapped;
+    assign s_axi_arvalid = ( state ==  S_ADDR_RAT || state == S_ADDR_ROW ) ? 1'b1 : 1'b0; 
+    
+     // PPS to second_tick
     logic second_tick;
     logic [2:0] c2c_pps;
     always_ff @( posedge axi_clk ) begin
@@ -412,7 +475,6 @@ module chip_top(
 		sr_hex_reg <= ( s_axi_rready && s_axi_rvalid ) ? { sr_hex_reg[6:0], { s_axi_rdata }} : sr_hex_reg;
 		sr_bin_reg <= ( s_axi_rready && s_axi_rvalid ) ? { sr_bin_reg[6:0], { s_axi_rid, s_axi_rlast, s_axi_rresp }} : sr_bin_reg;
 	end
-
 		    
     ///////////////////////////
     // HDMI Video Output
@@ -526,6 +588,7 @@ module chip_top(
     localparam WINY = 200-24;
     logic window_fg;
     logic window_bg;
+    logic win256;
     logic [9:0] xloc, yloc;
     logic vsync_del;
     logic blank_del;
@@ -550,10 +613,10 @@ module chip_top(
             window_bg <= 0;
         end
     end
-        
+    assign win256 = window_fg | window_bg;   // used to select the buffer 
     
     // Ovelay dynamic text
-    logic [13:0] txt_str;
+    logic [15:0] txt_str;
 	string_overlay #(.LEN( 7 )) i_txt0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 1 ), .out( txt_str[0] ), .str( "Seconds" ) );
 	hex_overlay    #(.LEN( 8 )) i_txt1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 1 ), .out( txt_str[1] ), .in( seconds ) );    
 	string_overlay #(.LEN( 6 )) i_txt2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 3 ), .out( txt_str[2] ), .str( "ReadEn" ) );
@@ -569,6 +632,8 @@ module chip_top(
     hex_overlay    #(.LEN( 8 )) i_txtb(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 11), .out( txt_str[11]), .in( ar_sec_bytes ) );
     string_overlay #(.LEN( 8 )) i_txtc(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 13), .out( txt_str[12]), .str( " Rbyte/s" ) );
     hex_overlay    #(.LEN( 8 )) i_txtd(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 13), .out( txt_str[13]), .in(  r_sec_bytes ) );
+    string_overlay #(.LEN( 8 )) i_txte(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 15), .out( txt_str[14]), .str( "RATpaddr" ) );
+    hex_overlay    #(.LEN( 8 )) i_txtf(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 15), .out( txt_str[15]), .in(  rat_addr ) );
 
 
     // AXI Log of M-AXIregister live Overlay Generators
@@ -692,9 +757,9 @@ module chip_top(
 		// YUV mode input
 		.yuv_mode		( 0 ), // use YUV2 mode, cheap USb capture devices provice lossless YUV2 capture mode 
 		// RBG Data
-		.red   ( ( window_fg | window_bg ) ? overlay_red   : ( test_red   | overlay_red  )  ),
-		.green ( ( window_fg | window_bg ) ? overlay_green : ( test_green | overlay_green) ),
-		.blue  ( ( window_fg | window_bg ) ? overlay_blue  : ( test_blue  | overlay_blue ) ),
+		.red   ( win256 ? rgb_img[23-:8] : ( test_red   | overlay_red  )  ),
+		.green ( win256 ? rgb_img[15-:8] : ( test_green | overlay_green) ),
+		.blue  ( win256 ? rgb_img[ 7-:8] : ( test_blue  | overlay_blue ) ),
 		// HDMI and DVI encoded video
 		.hdmi_data( hdmi_data ),
 		.dvi_data( dvi_data )
