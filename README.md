@@ -1,10 +1,10 @@
 # FlatFury
 
-My xilinx Artix-7 dev system for PCIe devlopment. It uses a LiteFury mounted to a raspberry Pi5 with M.2 slot.
+My xilinx Artix-7 fpga dev system for PCIe devlopment. It uses a LiteFury mounted to a raspberry Pi5 with M.2 slot.
 I've incorporated my standard HDMI video output. It makes a compact little pcie development platform in which 
 I've brought up the pcie interface without drivers directly accessing via: lspci, setpci, pcimem commands.
 
-![dev_platform](img/litefury_rpi5_hdmi.jpg)
+![dev_platform](img/7137621.jpg)
 
 This repo builds upon the LiteFury basis but with a greatly simplified flat file hierarchy.
 Its all system verilog and integrates a PCIe core and PLL ip modules (ungenerated) along with
@@ -64,7 +64,15 @@ A small piece of code (bmp_read.c) isused to load a 24-bit rgb .bmp file into me
     $ sudo ./bmp_read
     Reading img/test.bmp, 256x256 rgb24 image into memory
     Build physical rat (row address table)
-    Rat addr: 145d4000
+    Rat addr: 10348000
     Press enter key to exit
 
-plan:  update the fpga to display this image, continuously loading the rat table during vsync and reading the RGB data to display in the 256x256 window.
+The above C code reads the image into stack buffer and reports a physical address, and then pauses for a keystroke input.
+On a second console we can enable the FPGA pcie access, and write the provided physical address into it.
+
+    $ sudo setpci -s 0001:01:00.0 COMMAND=0x6
+    $ sudo ./pcimem /sys/bus/pci/devices/0001\:01\:00.0/resource0 0xcccc w 0x10348000
+
+The FPGA then initiates a continuous read dma, of during VSYNC reading a RAT table from the provided address via PCIe,
+and then prefetching display data before needed for each row of the window during HDMI display rendering.
+
