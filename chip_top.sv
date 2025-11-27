@@ -346,16 +346,8 @@ module chip_top(
 	///////////////////////////
 	
 	// Read video and display in our 256x256 window
-	// Initially a full read scan of memory
-	// Incrementing by 4K walk and read full 4G of memory
-	// The host memory of the PCIe root should reside at base address 64'h0
-    // Monitor the address visually on screen
-    // For now just accept all read data and discard.
     
-    
-    // R transactions
-    assign s_axi_rready = 1'b1; // accept all read data immediately.
-    
+      
     // AR transactions
     	
     // Fixed values
@@ -413,7 +405,7 @@ module chip_top(
                 S_WAIT_ROW : begin state <= ( win_c2c[3] && row_cnt == 0 ) ? S_IDLE : ( win_c2c[3] ) ? S_ADDR_ROW : S_WAIT_ROW; end
             endcase
 	        row_cnt <= ( state == S_IDLE ) ? 0 : ( s_axi_arvalid && s_axi_arready && state == S_ADDR_ROW ) ? row_cnt+1 : row_cnt; // row address incremented as soon as used
-	        col_cnt <= ( s_axi_rvalid  && s_axi_rready && s_axi_rlast ) ? 0 : ( s_axi_rvalid  && s_axi_rready ) ? col_cnt + 1 : col_cnt;
+	        col_cnt <= ( state == S_IDLE ) ? 0 : ( s_axi_rvalid  && s_axi_rready && s_axi_rlast ) ? 0 : ( s_axi_rvalid  && s_axi_rready ) ? col_cnt + 1 : col_cnt;
 	    end
 	end
 	
@@ -432,7 +424,7 @@ module chip_top(
     logic [23:0] rgb_img;
     logic [ 7:0] vid_cnt;
     always_ff @(posedge axi_clk) begin
-        if( s_axi_rvalid  && s_axi_rready && state == S_LOAD_RAT )
+        if( s_axi_rvalid  && s_axi_rready && state == S_LOAD_ROW )
             row_mem[col_cnt] <= s_axi_rdata[63-:24];
     end        
     always_ff @(posedge hdmi_clk) begin // read on video clock
@@ -443,6 +435,7 @@ module chip_top(
     // AR transaction 
     assign s_axi_araddr = ( state == S_ADDR_RAT ) ? rat_addr : mapped;
     assign s_axi_arvalid = ( state ==  S_ADDR_RAT || state == S_ADDR_ROW ) ? 1'b1 : 1'b0; 
+    assign s_axi_rready = ( state ==  S_LOAD_RAT || state == S_LOAD_ROW ) ? 1'b1 : 1'b0; 
     
      // PPS to second_tick
     logic second_tick;
@@ -757,9 +750,9 @@ module chip_top(
 		// YUV mode input
 		.yuv_mode		( 0 ), // use YUV2 mode, cheap USb capture devices provice lossless YUV2 capture mode 
 		// RBG Data
-		.red   ( win256 ? rgb_img[23-:8] : ( test_red   | overlay_red  )  ),
-		.green ( win256 ? rgb_img[15-:8] : ( test_green | overlay_green) ),
-		.blue  ( win256 ? rgb_img[ 7-:8] : ( test_blue  | overlay_blue ) ),
+		.red   ( ( win256 ) ? rgb_img[23-:8] : ( test_red   | overlay_red  ) ),
+		.green ( ( win256 ) ? rgb_img[15-:8] : ( test_green | overlay_green) ),
+		.blue  ( ( win256 ) ? rgb_img[ 7-:8] : ( test_blue  | overlay_blue ) ),
 		// HDMI and DVI encoded video
 		.hdmi_data( hdmi_data ),
 		.dvi_data( dvi_data )
