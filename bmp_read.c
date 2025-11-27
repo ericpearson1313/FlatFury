@@ -66,13 +66,13 @@ int main( int argc, char **argv )
 
 	for( int ii = 0; ii < 54; ii++ ) // skip 54 bytes of header
 		fgetc( fp );
-	for( int xx = 0; xx < 256; xx++ ) 
-		for( int yy = 0; yy < 256; yy++ ) 
+	for( int yy = 255; yy >= 0; yy-- ) 
+		for( int xx = 0; xx < 256; xx++ ) 
 		{
 			r = fgetc( fp );
 			g = fgetc( fp );
 			b = fgetc( fp );
-			val = (((long)r)<<56)+(((long)g)<<48)+(((long)b)<<40);
+			val = (((long)b)<<56)+(((long)g)<<48)+(((long)r)<<40);
 			buffer[(yy<<8)+xx] = val;
 //			printf("%lx\n", val );
 		}
