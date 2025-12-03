@@ -504,24 +504,74 @@ module chip_top(
     // common Data input buffer
     logic [255:0][3:0] data_buf;
     logic [1:0][255:0][3:0] best;
+    logic [11:0][255:0][3:0] p2best;
+    logic [11:0] flag;
+    
+    // Part 2 prioritized load flags
+    assign flag[11] = ( data_buf[10] > p2best[11][0]                  ) ? 1'b1 : 1'b0;
+    assign flag[10] = ( data_buf[ 9] > p2best[10][0] || (|flag[11:11])) ? 1'b1 : 1'b0;
+    assign flag[ 9] = ( data_buf[ 8] > p2best[ 9][0] || (|flag[11:10])) ? 1'b1 : 1'b0;
+    assign flag[ 8] = ( data_buf[ 7] > p2best[ 8][0] || (|flag[11: 9])) ? 1'b1 : 1'b0;
+    assign flag[ 7] = ( data_buf[ 6] > p2best[ 7][0] || (|flag[11: 8])) ? 1'b1 : 1'b0;
+    assign flag[ 6] = ( data_buf[ 5] > p2best[ 6][0] || (|flag[11: 7])) ? 1'b1 : 1'b0;
+    assign flag[ 5] = ( data_buf[ 4] > p2best[ 5][0] || (|flag[11: 6])) ? 1'b1 : 1'b0;
+    assign flag[ 4] = ( data_buf[ 3] > p2best[ 4][0] || (|flag[11: 5])) ? 1'b1 : 1'b0;
+    assign flag[ 3] = ( data_buf[ 2] > p2best[ 3][0] || (|flag[11: 4])) ? 1'b1 : 1'b0;
+    assign flag[ 2] = ( data_buf[ 1] > p2best[ 2][0] || (|flag[11: 3])) ? 1'b1 : 1'b0;
+    assign flag[ 1] = ( data_buf[ 0] > p2best[ 1][0] || (|flag[11: 2])) ? 1'b1 : 1'b0;
+    assign flag[ 0] = ( test_data    > p2best[ 0][0] || (|flag[11: 1])) ? 1'b1 : 1'b0;  
+    
+    
     always_ff @(posedge axi_clk ) begin  
-        if( vsync_c2c ) begin
+        if( vsync_c2c[3] ) begin
             data_buf <= 0;
             best <= 0;
+            p2best <= 0;
         end else if( test_valid ) begin
             data_buf <= { data_buf[254:0], test_data };
+            // Day 3 Part 1
             best[1] <= { best[1][254:0], ( data_buf[0] > best[1][0] ) ? data_buf[0] : best[1][0] };
             best[0] <= { best[0][254:0], ( data_buf[0] > best[1][0] ) ? test_data   : 
                                          ( test_data   > best[0][0] ) ? test_data   : best[0][0] };
+            // Day 3 Part 2 
+            p2best[11] <= { p2best[11][254:0], ( flag[11] ) ? data_buf[10] : p2best[11] };
+            p2best[10] <= { p2best[10][254:0], ( flag[10] ) ? data_buf[ 9] : p2best[10] };
+            p2best[ 9] <= { p2best[ 9][254:0], ( flag[ 9] ) ? data_buf[ 8] : p2best[ 9] };
+            p2best[ 8] <= { p2best[ 8][254:0], ( flag[ 8] ) ? data_buf[ 7] : p2best[ 8] };
+            p2best[ 7] <= { p2best[ 7][254:0], ( flag[ 7] ) ? data_buf[ 6] : p2best[ 7] };
+            p2best[ 6] <= { p2best[ 6][254:0], ( flag[ 6] ) ? data_buf[ 5] : p2best[ 6] };
+            p2best[ 5] <= { p2best[ 5][254:0], ( flag[ 5] ) ? data_buf[ 4] : p2best[ 5] };
+            p2best[ 4] <= { p2best[ 4][254:0], ( flag[ 4] ) ? data_buf[ 3] : p2best[ 4] };
+            p2best[ 3] <= { p2best[ 3][254:0], ( flag[ 3] ) ? data_buf[ 2] : p2best[ 3] };
+            p2best[ 2] <= { p2best[ 2][254:0], ( flag[ 2] ) ? data_buf[ 1] : p2best[ 2] };
+            p2best[ 1] <= { p2best[ 1][254:0], ( flag[ 1] ) ? data_buf[ 0] : p2best[ 1] };
+            p2best[ 0] <= { p2best[ 0][254:0], ( flag[ 0] ) ? test_data    : p2best[ 0] };
         end
     end // always
     
     // Display on HDMI screen
-    logic [20:0] aoc_ov;
-	string_overlay #(.LEN( 11  )) i_aoc0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 22 ), .out( aoc_ov[0] ), .str( "Day 3 Part 1" ) );
-	hex_overlay    #(.LEN( 100 )) i_aoc1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 23 ), .out( aoc_ov[1] ), .in( data_buf[255-:100] ) ); 
-	hex_overlay    #(.LEN( 100 )) i_aoc2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 24 ), .out( aoc_ov[2] ), .in( best[0][255-:100] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aoc3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 25 ), .out( aoc_ov[3] ), .in( best[1][255-:100] ) );    	    
+    logic [40:0] aoc_ov;
+	string_overlay #(.LEN( 12  )) i_aoc0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 22 ), .out( aoc_ov[0] ), .str( "Day 3 Part 1" ) );
+	hex_overlay    #(.LEN( 100 )) i_aoc1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 23 ), .out( aoc_ov[1] ), .in( data_buf[255-:100] ) ); 
+	hex_overlay    #(.LEN( 100 )) i_aoc2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 24 ), .out( aoc_ov[2] ), .in( best[0][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aoc3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 25 ), .out( aoc_ov[3] ), .in( best[1][255-:100] ) );    	    
+	string_overlay #(.LEN( 2   )) i_aoc4(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 23 ), .out( aoc_ov[4] ), .str( "Da" ) );
+	string_overlay #(.LEN( 2   )) i_aoc5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 24 ), .out( aoc_ov[5] ), .str( "b0" ) );
+	string_overlay #(.LEN( 2   )) i_aoc6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 25 ), .out( aoc_ov[6] ), .str( "b1" ) );
+	
+	hex_overlay    #(.LEN( 100 )) i_aoc7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 28 ), .out( aoc_ov[7] ), .in( p2best[0][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aoc8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 29 ), .out( aoc_ov[8] ), .in( p2best[1][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aoc9(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 30 ), .out( aoc_ov[9] ), .in( p2best[2][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aoca(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 31 ), .out( aoc_ov[10] ), .in( p2best[3][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aocb(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 32 ), .out( aoc_ov[11] ), .in( p2best[4][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aocc(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 33 ), .out( aoc_ov[12] ), .in( p2best[5][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aocd(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 34 ), .out( aoc_ov[13] ), .in( p2best[6][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aoce(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 35 ), .out( aoc_ov[14] ), .in( p2best[7][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aocf(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 36 ), .out( aoc_ov[15] ), .in( p2best[8][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aocg(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 37 ), .out( aoc_ov[16] ), .in( p2best[9][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aoch(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 38 ), .out( aoc_ov[17] ), .in( p2best[10][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aoci(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 39 ), .out( aoc_ov[18] ), .in( p2best[11][255-:100] ) );    	    
+	string_overlay #(.LEN( 12  )) i_aocj(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 27 ), .out( aoc_ov[19] ), .str( "Day 3 Part 2" ) );
 	 
     ///////////////////////////
     // HDMI Video Output
@@ -639,28 +689,28 @@ module chip_top(
     logic [9:0] xloc, yloc;
     logic vsync_del;
     logic blank_del;
-    always_ff @(posedge hdmi_clk ) begin
-        vsync_del <= vsync;
-        blank_del <= blank;
-        xloc <= ( blank ) ? 0 : xloc + 1;
-        yloc <= ( vsync & !vsync_del ) ? 0 : ( blank & !blank_del ) ? yloc + 1 : yloc;
-        if( xloc >= WINX && xloc < WINX+256 && yloc >= WINY && yloc < WINY+256 ) begin // Inside the window
-            if( v_read && xloc-WINX == v_addr[23:16] || v_read && yloc-WINY == v_addr[31:24] ) begin
-                window_fg <= 1;
-                window_bg <= 0;
-            end else if( xloc == WINX || xloc == WINX+255 || yloc == WINY || yloc == WINY+255 ) begin
-                window_fg <= 1;
-                window_bg <= 0;
-            end else begin      
-                window_fg <= 0;
-                window_bg <= 1;
-            end
-        end else begin
-            window_fg <= 0;
-            window_bg <= 0;
-        end
-    end
-    assign win256 = window_fg | window_bg;   // used to select the buffer 
+    //always_ff @(posedge hdmi_clk ) begin
+    //    vsync_del <= vsync;
+    //    blank_del <= blank;
+    //    xloc <= ( blank ) ? 0 : xloc + 1;
+    //    yloc <= ( vsync & !vsync_del ) ? 0 : ( blank & !blank_del ) ? yloc + 1 : yloc;
+    //    if( xloc >= WINX && xloc < WINX+256 && yloc >= WINY && yloc < WINY+256 ) begin // Inside the window
+    //        if( v_read && xloc-WINX == v_addr[23:16] || v_read && yloc-WINY == v_addr[31:24] ) begin
+    //            window_fg <= 1;
+    //            window_bg <= 0;
+    //        end else if( xloc == WINX || xloc == WINX+255 || yloc == WINY || yloc == WINY+255 ) begin
+    //            window_fg <= 1;
+    //            window_bg <= 0;
+    //        end else begin      
+    //            window_fg <= 0;
+    //            window_bg <= 1;
+    //        end
+    //    end else begin
+    //        window_fg <= 0;
+    //        window_bg <= 0;
+    //    end
+    //end
+    //assign win256 = window_fg | window_bg;   // used to select the buffer 
     
     // Ovelay dynamic text
     logic [15:0] txt_str;
@@ -752,7 +802,7 @@ module chip_top(
 	// Overlay Text - Dynamic
 	logic [31:0] id_str;
 	
-	string_overlay #(.LEN(29 )) i_id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 20 ), .y( 1 ), .out( id_str[0]), .str( "HDMI WVGA output 800x480x60Hz" ) );
+	string_overlay #(.LEN(29 )) i_id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 20 ), .y( 1 ), .out( id_str[0]), .str( "HDMI WVGA output 800x480x66Hz" ) );
 	string_overlay #(.LEN(14 )) i_id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 20 ), .y( 3 ), .out( id_str[1]), .str( "PCIe Link Up =" ) );
     bin_overlay    #(.LEN(1  )) i_id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x( 35 ), .y( 3 ), .out( id_str[2]), .in( user_link_up ) );
     
@@ -762,7 +812,7 @@ module chip_top(
 	// Mix overlays
 	logic overlay;
 	assign overlay = ( text_ovl && text_color == 0 ) | // normal text
-						  (|id_str) | (|aw_ovl) | (|ar_ovl) | (|w_ovl) | (|r_ovl)| (|txt_str) ; // OR of Reduction ORs!
+						  (|id_str) | (|aw_ovl) | (|ar_ovl) | (|w_ovl) | (|r_ovl)| (|txt_str) | (|aoc_ov); // OR of Reduction ORs!
 	
 	// Overlay Color
 	logic [7:0] overlay_red, overlay_green, overlay_blue;
@@ -804,9 +854,9 @@ module chip_top(
 		// YUV mode input
 		.yuv_mode		( 0 ), // use YUV2 mode, cheap USb capture devices provice lossless YUV2 capture mode 
 		// RBG Data
-		.red   ( ( win256 ) ? rgb_img[23-:8] : ( test_red   | overlay_red  ) ),
-		.green ( ( win256 ) ? rgb_img[15-:8] : ( test_green | overlay_green) ),
-		.blue  ( ( win256 ) ? rgb_img[ 7-:8] : ( test_blue  | overlay_blue ) ),
+		.red   ( ( test_red   | overlay_red  ) ),
+		.green ( ( test_green | overlay_green) ),
+		.blue  ( ( test_blue  | overlay_blue ) ),
 		// HDMI and DVI encoded video
 		.hdmi_data( hdmi_data ),
 		.dvi_data( dvi_data )
