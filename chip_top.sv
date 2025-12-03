@@ -468,7 +468,61 @@ module chip_top(
 		sr_hex_reg <= ( s_axi_rready && s_axi_rvalid ) ? { sr_hex_reg[6:0], { s_axi_rdata }} : sr_hex_reg;
 		sr_bin_reg <= ( s_axi_rready && s_axi_rvalid ) ? { sr_bin_reg[6:0], { s_axi_rid, s_axi_rlast, s_axi_rresp }} : sr_bin_reg;
 	end
-		    
+
+    ///////////////////////////
+    // DAY-3 Logic
+    ///////////////////////////     
+    
+    // brinup Test generator
+    // Every vsync, emit a 256 cycle nibble vector with last
+    logic [0:255][3:0] test_init = { 400'h4732321333332463233337712234322122322247222252423773321362313613333336333732233372323328332333322777, {156{4'h0}} };
+    logic [0:255][3:0] test_buf; // shift register
+    logic [3:0] test_data;
+    logic       test_valid;
+    logic       test_last;
+    logic [7:0] test_count;
+    always_ff @(posedge axi_clk ) begin
+        if( vsync_c2c[3] ) begin // rising vsync edge
+            test_buf    <= test_init;
+            test_count  <= 0;
+            test_last   <= 0;
+            test_valid  <= 1;
+        end else if( test_valid ) begin
+            test_buf[0:255] <= { test_buf[1:255], 4'h0 }; //shift data
+            test_count   <= test_count + 1;
+            test_valid  <= ( test_count == 255 ) ? 1'b0 : 1'b1;
+            test_last   <= ( test_count == 254 ) ? 1'b1 : 1'b0;
+        end else begin
+            test_buf <= test_buf;
+            test_valid <= 0;
+            test_last <= 0;
+            test_count <= 0;
+        end    
+    end // always        
+    assign test_data = test_buf[0];
+    
+    // common Data input buffer
+    logic [255:0][3:0] data_buf;
+    logic [1:0][255:0][3:0] best;
+    always_ff @(posedge axi_clk ) begin  
+        if( vsync_c2c ) begin
+            data_buf <= 0;
+            best <= 0;
+        end else if( test_valid ) begin
+            data_buf <= { data_buf[254:0], test_data };
+            best[1] <= { best[1][254:0], ( data_buf[0] > best[1][0] ) ? data_buf[0] : best[1][0] };
+            best[0] <= { best[0][254:0], ( data_buf[0] > best[1][0] ) ? test_data   : 
+                                         ( test_data   > best[0][0] ) ? test_data   : best[0][0] };
+        end
+    end // always
+    
+    // Display on HDMI screen
+    logic [20:0] aoc_ov;
+	string_overlay #(.LEN( 11  )) i_aoc0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 107 ), .y( 22 ), .out( aoc_ov[0] ), .str( "Day 3 Part 1" ) );
+	hex_overlay    #(.LEN( 100 )) i_aoc1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 23 ), .out( aoc_ov[1] ), .in( data_buf[255-:100] ) ); 
+	hex_overlay    #(.LEN( 100 )) i_aoc2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 24 ), .out( aoc_ov[2] ), .in( best[0][255-:100] ) );    	    
+	hex_overlay    #(.LEN( 100 )) i_aoc3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 116 ), .y( 25 ), .out( aoc_ov[3] ), .in( best[1][255-:100] ) );    	    
+	 
     ///////////////////////////
     // HDMI Video Output
     ///////////////////////////     
@@ -631,68 +685,68 @@ module chip_top(
 
     // AXI Log of M-AXIregister live Overlay Generators
 	logic [7:0][9:0] aw_ovl, ar_ovl, w_ovl, r_ovl;
-	genvar gg;
-	generate
-		for( gg = 0; gg < 10; gg++ ) begin : aw_text
-			int row = gg + 22;
-			int col = 0;
-			// AW Log Text Overlay
-			if( gg == 0 ) begin : aw_title
-				string_overlay #(.LEN(41 )) i_id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out( aw_ovl[0][gg] ), .str( "AW Address  Len Size Brst Prot Lock Cache" ) );
-			end else if ( gg >= 2 ) begin : aw_fields
-				hex_overlay    #(.LEN( 8 )) i_id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out( aw_ovl[1][gg] ), .in( aw_hex_reg[gg-2][39-:32] ) );
-				hex_overlay    #(.LEN( 2 )) i_id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+19), .y(row), .out( aw_ovl[2][gg] ), .in( aw_hex_reg[gg-2][ 7-:8 ] ) );
-				bin_overlay    #(.LEN( 3 )) i_id3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+23), .y(row), .out( aw_ovl[3][gg] ), .in( aw_bin_reg[gg-2][12-:3 ] ) );
-				bin_overlay    #(.LEN( 2 )) i_id4(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out( aw_ovl[4][gg] ), .in( aw_bin_reg[gg-2][ 9-:2 ] ) );
-				bin_overlay    #(.LEN( 3 )) i_id5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+33), .y(row), .out( aw_ovl[5][gg] ), .in( aw_bin_reg[gg-2][ 7-:3 ] ) );
-				bin_overlay    #(.LEN( 1 )) i_id6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+38), .y(row), .out( aw_ovl[6][gg] ), .in( aw_bin_reg[gg-2][ 4-:1 ] ) );
-				bin_overlay    #(.LEN( 4 )) i_id7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+43), .y(row), .out( aw_ovl[7][gg] ), .in( aw_bin_reg[gg-2][ 3-:4 ] ) );
-			end
-		end
-		// AR Log Text Overlay
-		for( gg = 0; gg < 10; gg++ ) begin : ar_text
-			int row = gg + 10;
-			int col = 0;
-			if( gg == 0 ) begin : ar_title
-				string_overlay #(.LEN(41 )) i_id8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out( ar_ovl[0][gg] ), .str( "AR Address  Len Size Brst Prot Lock Cache" ) );
-			end else if ( gg >= 2 ) begin : ar_fields
-				hex_overlay    #(.LEN( 8 )) i_id9(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out( ar_ovl[1][gg] ), .in( ar_hex_reg[gg-2][39-:32] ) );
-				hex_overlay    #(.LEN( 2 )) i_ida(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+19), .y(row), .out( ar_ovl[2][gg] ), .in( ar_hex_reg[gg-2][ 7-:8 ] ) );
-				bin_overlay    #(.LEN( 3 )) i_idb(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+23), .y(row), .out( ar_ovl[3][gg] ), .in( ar_bin_reg[gg-2][12-:3 ] ) );
-				bin_overlay    #(.LEN( 2 )) i_idc(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out( ar_ovl[4][gg] ), .in( ar_bin_reg[gg-2][ 9-:2 ] ) );
-				bin_overlay    #(.LEN( 3 )) i_idd(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+33), .y(row), .out( ar_ovl[5][gg] ), .in( ar_bin_reg[gg-2][ 7-:3 ] ) );
-				bin_overlay    #(.LEN( 1 )) i_ide(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+38), .y(row), .out( ar_ovl[6][gg] ), .in( ar_bin_reg[gg-2][ 4-:1 ] ) );
-				bin_overlay    #(.LEN( 4 )) i_idf(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+43), .y(row), .out( ar_ovl[7][gg] ), .in( ar_bin_reg[gg-2][ 3-:4 ] ) );
-			end
-		end
-		// W Log Text Overlay
-		for( gg = 0; gg < 10; gg++ ) begin : w_text
-			int row = gg + 22;
-			int col = 42;
-			if( gg == 0 ) begin : ar_title
-	            string_overlay #(.LEN(34 )) i_idg(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out(  w_ovl[0][gg] ), .str( " W Write Data        Strobe   Last" ) );
-			end else if ( gg >= 2 ) begin : ar_fields
-				hex_overlay    #(.LEN(16 )) i_idh(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out(  w_ovl[1][gg] ), .in( w_hex_reg[gg-2][63-:64] ) );
-				bin_overlay    #(.LEN( 8 )) i_idi(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out(  w_ovl[2][gg] ), .in( w_bin_reg[gg-2][ 8-:8 ] ) );
-				bin_overlay    #(.LEN( 1 )) i_idj(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+37), .y(row), .out(  w_ovl[3][gg] ), .in( w_bin_reg[gg-2][ 0-:1 ] ) );
-			end
-		end
-		// S R log overlay
-		// W Log Text Overlay
-		for( gg = 0; gg < 10; gg++ ) begin : sr_text
-			int row = gg + 35;
-			int col = 42;
-			if( gg == 0 ) begin : r_title
-	            string_overlay #(.LEN(35 )) i_idk(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out(  r_ovl[0][gg] ), .str( "SR Read Data         Id   Last Resp" ) );
-			end else if ( gg >= 2 ) begin : ar_fields
-				hex_overlay    #(.LEN(16 )) i_idl(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out(  r_ovl[1][gg] ), .in( sr_hex_reg[gg-2][63-:64] ) );
-				bin_overlay    #(.LEN( 4 )) i_idm(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out(  r_ovl[2][gg] ), .in( sr_bin_reg[gg-2][ 6-:4 ] ) );
-				bin_overlay    #(.LEN( 1 )) i_idn(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+33), .y(row), .out(  r_ovl[3][gg] ), .in( sr_bin_reg[gg-2][ 2-:1 ] ) );
-				bin_overlay    #(.LEN( 2 )) i_idp(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+38), .y(row), .out(  r_ovl[4][gg] ), .in( sr_bin_reg[gg-2][ 1-:2 ] ) );
-			end
-		end
-		
-	endgenerate
+	//genvar gg;
+	//generate
+	//	for( gg = 0; gg < 10; gg++ ) begin : aw_text
+	//		int row = gg + 22;
+	//		int col = 0;
+	//		// AW Log Text Overlay
+	//		if( gg == 0 ) begin : aw_title
+	//			string_overlay #(.LEN(41 )) i_id0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out( aw_ovl[0][gg] ), .str( "AW Address  Len Size Brst Prot Lock Cache" ) );
+	//		end else if ( gg >= 2 ) begin : aw_fields
+	//			hex_overlay    #(.LEN( 8 )) i_id1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out( aw_ovl[1][gg] ), .in( aw_hex_reg[gg-2][39-:32] ) );
+	//			hex_overlay    #(.LEN( 2 )) i_id2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+19), .y(row), .out( aw_ovl[2][gg] ), .in( aw_hex_reg[gg-2][ 7-:8 ] ) );
+	//			bin_overlay    #(.LEN( 3 )) i_id3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+23), .y(row), .out( aw_ovl[3][gg] ), .in( aw_bin_reg[gg-2][12-:3 ] ) );
+	//			bin_overlay    #(.LEN( 2 )) i_id4(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out( aw_ovl[4][gg] ), .in( aw_bin_reg[gg-2][ 9-:2 ] ) );
+	//			bin_overlay    #(.LEN( 3 )) i_id5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+33), .y(row), .out( aw_ovl[5][gg] ), .in( aw_bin_reg[gg-2][ 7-:3 ] ) );
+	//			bin_overlay    #(.LEN( 1 )) i_id6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+38), .y(row), .out( aw_ovl[6][gg] ), .in( aw_bin_reg[gg-2][ 4-:1 ] ) );
+	//			bin_overlay    #(.LEN( 4 )) i_id7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+43), .y(row), .out( aw_ovl[7][gg] ), .in( aw_bin_reg[gg-2][ 3-:4 ] ) );
+	//		end
+	//	end
+	//	// AR Log Text Overlay
+	//	for( gg = 0; gg < 10; gg++ ) begin : ar_text
+	//		int row = gg + 10;
+	//		int col = 0;
+	//		if( gg == 0 ) begin : ar_title
+	//			string_overlay #(.LEN(41 )) i_id8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out( ar_ovl[0][gg] ), .str( "AR Address  Len Size Brst Prot Lock Cache" ) );
+	//		end else if ( gg >= 2 ) begin : ar_fields
+	//			hex_overlay    #(.LEN( 8 )) i_id9(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out( ar_ovl[1][gg] ), .in( ar_hex_reg[gg-2][39-:32] ) );
+	//			hex_overlay    #(.LEN( 2 )) i_ida(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+19), .y(row), .out( ar_ovl[2][gg] ), .in( ar_hex_reg[gg-2][ 7-:8 ] ) );
+	//			bin_overlay    #(.LEN( 3 )) i_idb(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+23), .y(row), .out( ar_ovl[3][gg] ), .in( ar_bin_reg[gg-2][12-:3 ] ) );
+	//			bin_overlay    #(.LEN( 2 )) i_idc(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out( ar_ovl[4][gg] ), .in( ar_bin_reg[gg-2][ 9-:2 ] ) );
+	//			bin_overlay    #(.LEN( 3 )) i_idd(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+33), .y(row), .out( ar_ovl[5][gg] ), .in( ar_bin_reg[gg-2][ 7-:3 ] ) );
+	//			bin_overlay    #(.LEN( 1 )) i_ide(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+38), .y(row), .out( ar_ovl[6][gg] ), .in( ar_bin_reg[gg-2][ 4-:1 ] ) );
+	//			bin_overlay    #(.LEN( 4 )) i_idf(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+43), .y(row), .out( ar_ovl[7][gg] ), .in( ar_bin_reg[gg-2][ 3-:4 ] ) );
+	//		end
+	//	end
+	//	// W Log Text Overlay
+	//	for( gg = 0; gg < 10; gg++ ) begin : w_text
+	//		int row = gg + 22;
+	//		int col = 42;
+	//		if( gg == 0 ) begin : ar_title
+	//            string_overlay #(.LEN(34 )) i_idg(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out(  w_ovl[0][gg] ), .str( " W Write Data        Strobe   Last" ) );
+	//		end else if ( gg >= 2 ) begin : ar_fields
+	//			hex_overlay    #(.LEN(16 )) i_idh(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out(  w_ovl[1][gg] ), .in( w_hex_reg[gg-2][63-:64] ) );
+	//			bin_overlay    #(.LEN( 8 )) i_idi(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out(  w_ovl[2][gg] ), .in( w_bin_reg[gg-2][ 8-:8 ] ) );
+	//			bin_overlay    #(.LEN( 1 )) i_idj(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+37), .y(row), .out(  w_ovl[3][gg] ), .in( w_bin_reg[gg-2][ 0-:1 ] ) );
+	//		end
+	//	end
+	//	// S R log overlay
+	//	// W Log Text Overlay
+	//	for( gg = 0; gg < 10; gg++ ) begin : sr_text
+	//		int row = gg + 35;
+	//		int col = 42;
+	//		if( gg == 0 ) begin : r_title
+	//            string_overlay #(.LEN(35 )) i_idk(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x(col+7 ), .y(row), .out(  r_ovl[0][gg] ), .str( "SR Read Data         Id   Last Resp" ) );
+	//		end else if ( gg >= 2 ) begin : ar_fields
+	//			hex_overlay    #(.LEN(16 )) i_idl(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x(col+10), .y(row), .out(  r_ovl[1][gg] ), .in( sr_hex_reg[gg-2][63-:64] ) );
+	//			bin_overlay    #(.LEN( 4 )) i_idm(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+28), .y(row), .out(  r_ovl[2][gg] ), .in( sr_bin_reg[gg-2][ 6-:4 ] ) );
+	//			bin_overlay    #(.LEN( 1 )) i_idn(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+33), .y(row), .out(  r_ovl[3][gg] ), .in( sr_bin_reg[gg-2][ 2-:1 ] ) );
+	//			bin_overlay    #(.LEN( 2 )) i_idp(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x(col+38), .y(row), .out(  r_ovl[4][gg] ), .in( sr_bin_reg[gg-2][ 1-:2 ] ) );
+	//		end
+	//	end
+	//	
+	//endgenerate
 
 
 	// Overlay Text - Dynamic
