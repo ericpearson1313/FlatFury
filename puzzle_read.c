@@ -66,11 +66,11 @@ int main( int argc, char **argv )
 	yy = 0;
 	c = fgetc( fp );
 	while( !feof( fp ) ) {
-		printf("%02x ", yy);
+		//printf("%02x ", yy);
 		// read in up to CR
 		xx = 0;
 		while( c != 0x0A ) {
-			printf("%c",c);
+			//printf("%c",c);
 			bdc = c - '0';
 			bdc = ( bdc > 0 && bdc < 10 ) ? bdc : 0; // only keep digits, else zero
 			val = (bdc<<60)+(bdc<<52)+(bdc<<44); // pack into high nibble of R,G,B
@@ -79,22 +79,22 @@ int main( int argc, char **argv )
 			c = fgetc( fp );
 		}
 		while( xx < 256 ) {
-			printf("%c",'0');
+			//printf("%c",'0');
 			buffer[(yy<<8)+xx] = 0;
 			xx++;
 		}
 		yy++;
-		printf("\n");
+		//printf("\n");
 		c = fgetc( fp );
 	}
 	while( yy < 256 ) {
-		printf("%02x ", yy);
+		//printf("%02x ", yy);
 		for( xx = 0; xx < 256; xx++ ) {
-			printf("%c",'0');
+			//printf("%c",'0');
 			buffer[(yy<<8)+xx] = 0;
 		}
 		yy++;
-		printf("\n");
+		//printf("\n");
 	}
 			
 	printf("Build physical rat (row address table)\n");
