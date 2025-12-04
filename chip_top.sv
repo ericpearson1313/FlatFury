@@ -477,7 +477,7 @@ module chip_top(
     // Every vsync, emit a 256 cycle nibble vector with last
     //logic [0:255][3:0] test_init = { 400'h4732321333332463233337712234322122322247222252423773321362313613333336333732233372323328332333322777, {156{4'h0}} };
     //logic [0:255][3:0] test_buf; // shift register
-    //logic [3:0] test_data;
+    logic [3:0] test_data;
     //logic       test_valid;
     //logic       test_last;
     //logic [7:0] test_count;
