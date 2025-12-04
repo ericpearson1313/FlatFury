@@ -32,7 +32,7 @@ and last row processing. It also shows a date rate consistant with 201 bursts of
 
 Here's the Day3 data as a 2D image
 
-![day3data](day3data.jpg)    
+![day3data](day3data.jpeg)    
 
 The Readme from the branch point of this project is below
 
