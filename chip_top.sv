@@ -508,18 +508,18 @@ module chip_top(
     logic [11:0] flag;
     
     // Part 2 prioritized load flags
-    assign flag[11] = ( data_buf[10] > p2best[11][0]                  ) ? 1'b1 : 1'b0;
-    assign flag[10] = ( data_buf[ 9] > p2best[10][0] || (|flag[11:11])) ? 1'b1 : 1'b0;
-    assign flag[ 9] = ( data_buf[ 8] > p2best[ 9][0] || (|flag[11:10])) ? 1'b1 : 1'b0;
-    assign flag[ 8] = ( data_buf[ 7] > p2best[ 8][0] || (|flag[11: 9])) ? 1'b1 : 1'b0;
-    assign flag[ 7] = ( data_buf[ 6] > p2best[ 7][0] || (|flag[11: 8])) ? 1'b1 : 1'b0;
-    assign flag[ 6] = ( data_buf[ 5] > p2best[ 6][0] || (|flag[11: 7])) ? 1'b1 : 1'b0;
-    assign flag[ 5] = ( data_buf[ 4] > p2best[ 5][0] || (|flag[11: 6])) ? 1'b1 : 1'b0;
-    assign flag[ 4] = ( data_buf[ 3] > p2best[ 4][0] || (|flag[11: 5])) ? 1'b1 : 1'b0;
-    assign flag[ 3] = ( data_buf[ 2] > p2best[ 3][0] || (|flag[11: 4])) ? 1'b1 : 1'b0;
-    assign flag[ 2] = ( data_buf[ 1] > p2best[ 2][0] || (|flag[11: 3])) ? 1'b1 : 1'b0;
-    assign flag[ 1] = ( data_buf[ 0] > p2best[ 1][0] || (|flag[11: 2])) ? 1'b1 : 1'b0;
-    assign flag[ 0] = ( test_data    > p2best[ 0][0] || (|flag[11: 1])) ? 1'b1 : 1'b0;  
+    assign flag[11] = ( data_buf[10] > p2best[11][0]                   ) ? 1'b1 : 1'b0;
+    assign flag[10] = ( data_buf[ 9] > p2best[10][0] || (|flag[11:11]) ) ? 1'b1 : 1'b0;
+    assign flag[ 9] = ( data_buf[ 8] > p2best[ 9][0] || (|flag[11:10]) ) ? 1'b1 : 1'b0;
+    assign flag[ 8] = ( data_buf[ 7] > p2best[ 8][0] || (|flag[11: 9]) ) ? 1'b1 : 1'b0;
+    assign flag[ 7] = ( data_buf[ 6] > p2best[ 7][0] || (|flag[11: 8]) ) ? 1'b1 : 1'b0;
+    assign flag[ 6] = ( data_buf[ 5] > p2best[ 6][0] || (|flag[11: 7]) ) ? 1'b1 : 1'b0;
+    assign flag[ 5] = ( data_buf[ 4] > p2best[ 5][0] || (|flag[11: 6]) ) ? 1'b1 : 1'b0;
+    assign flag[ 4] = ( data_buf[ 3] > p2best[ 4][0] || (|flag[11: 5]) ) ? 1'b1 : 1'b0;
+    assign flag[ 3] = ( data_buf[ 2] > p2best[ 3][0] || (|flag[11: 4]) ) ? 1'b1 : 1'b0;
+    assign flag[ 2] = ( data_buf[ 1] > p2best[ 2][0] || (|flag[11: 3]) ) ? 1'b1 : 1'b0;
+    assign flag[ 1] = ( data_buf[ 0] > p2best[ 1][0] || (|flag[11: 2]) ) ? 1'b1 : 1'b0;
+    assign flag[ 0] = ( test_data    > p2best[ 0][0] || (|flag[11: 1]) ) ? 1'b1 : 1'b0;  
     
     
     always_ff @(posedge axi_clk ) begin  
@@ -534,20 +534,53 @@ module chip_top(
             best[0] <= { best[0][254:0], ( data_buf[0] > best[1][0] ) ? test_data   : 
                                          ( test_data   > best[0][0] ) ? test_data   : best[0][0] };
             // Day 3 Part 2 
-            p2best[11] <= { p2best[11][254:0], ( flag[11] ) ? data_buf[10] : p2best[11] };
-            p2best[10] <= { p2best[10][254:0], ( flag[10] ) ? data_buf[ 9] : p2best[10] };
-            p2best[ 9] <= { p2best[ 9][254:0], ( flag[ 9] ) ? data_buf[ 8] : p2best[ 9] };
-            p2best[ 8] <= { p2best[ 8][254:0], ( flag[ 8] ) ? data_buf[ 7] : p2best[ 8] };
-            p2best[ 7] <= { p2best[ 7][254:0], ( flag[ 7] ) ? data_buf[ 6] : p2best[ 7] };
-            p2best[ 6] <= { p2best[ 6][254:0], ( flag[ 6] ) ? data_buf[ 5] : p2best[ 6] };
-            p2best[ 5] <= { p2best[ 5][254:0], ( flag[ 5] ) ? data_buf[ 4] : p2best[ 5] };
-            p2best[ 4] <= { p2best[ 4][254:0], ( flag[ 4] ) ? data_buf[ 3] : p2best[ 4] };
-            p2best[ 3] <= { p2best[ 3][254:0], ( flag[ 3] ) ? data_buf[ 2] : p2best[ 3] };
-            p2best[ 2] <= { p2best[ 2][254:0], ( flag[ 2] ) ? data_buf[ 1] : p2best[ 2] };
-            p2best[ 1] <= { p2best[ 1][254:0], ( flag[ 1] ) ? data_buf[ 0] : p2best[ 1] };
-            p2best[ 0] <= { p2best[ 0][254:0], ( flag[ 0] ) ? test_data    : p2best[ 0] };
+            p2best[11] <= { p2best[11][254:0], ( flag[11] ) ? data_buf[10] : p2best[11][0] };
+            p2best[10] <= { p2best[10][254:0], ( flag[10] ) ? data_buf[ 9] : p2best[10][0] };
+            p2best[ 9] <= { p2best[ 9][254:0], ( flag[ 9] ) ? data_buf[ 8] : p2best[ 9][0] };
+            p2best[ 8] <= { p2best[ 8][254:0], ( flag[ 8] ) ? data_buf[ 7] : p2best[ 8][0] };
+            p2best[ 7] <= { p2best[ 7][254:0], ( flag[ 7] ) ? data_buf[ 6] : p2best[ 7][0] };
+            p2best[ 6] <= { p2best[ 6][254:0], ( flag[ 6] ) ? data_buf[ 5] : p2best[ 6][0] };
+            p2best[ 5] <= { p2best[ 5][254:0], ( flag[ 5] ) ? data_buf[ 4] : p2best[ 5][0] };
+            p2best[ 4] <= { p2best[ 4][254:0], ( flag[ 4] ) ? data_buf[ 3] : p2best[ 4][0] };
+            p2best[ 3] <= { p2best[ 3][254:0], ( flag[ 3] ) ? data_buf[ 2] : p2best[ 3][0] };
+            p2best[ 2] <= { p2best[ 2][254:0], ( flag[ 2] ) ? data_buf[ 1] : p2best[ 2][0] };
+            p2best[ 1] <= { p2best[ 1][254:0], ( flag[ 1] ) ? data_buf[ 0] : p2best[ 1][0] };
+            p2best[ 0] <= { p2best[ 0][254:0], ( flag[ 0] ) ? test_data    : p2best[ 0][0] };
         end
     end // always
+    
+    // BCD Accumulators
+    logic [15:0][3:0] p1sum, p2sum, p1add, p2add;
+    bcd_add64 i_addp1( 
+        .ina( { {14{4'h0}}, best[1][156],best[0][156] } ),
+        .inb( p1sum ), .sum( p1add ) );
+    bcd_add64 i_addp2( 
+        .ina( { {4{4'h0}},  p2best[11][156],
+                            p2best[10][156],
+                            p2best[9][156],
+                            p2best[8][156],
+                            p2best[7][156],
+                            p2best[6][156],
+                            p2best[5][156],
+                            p2best[4][156],
+                            p2best[3][156],
+                            p2best[2][156],
+                            p2best[1][156],
+                            p2best[0][156] } ),
+        .inb( p2sum ), .sum( p2add ) );
+    logic del;
+    always_ff @(posedge axi_clk ) begin
+        del <= test_valid & test_last;
+        if( vsync_c2c[3] ) begin
+            p1sum <= 0;
+            p2sum <= 0;
+        end else if ( del ) begin
+            p1sum <= p1add;
+            p2sum <= p2add;
+        end
+    end
+       
+         
     
     // Display on HDMI screen
     logic [40:0] aoc_ov;
@@ -572,6 +605,11 @@ module chip_top(
 	hex_overlay    #(.LEN( 100 )) i_aoch(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 38 ), .out( aoc_ov[17] ), .in( p2best[10][255-:100] ) );    	    
 	hex_overlay    #(.LEN( 100 )) i_aoci(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 39 ), .out( aoc_ov[18] ), .in( p2best[11][255-:100] ) );    	    
 	string_overlay #(.LEN( 12  )) i_aocj(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 27 ), .out( aoc_ov[19] ), .str( "Day 3 Part 2" ) );
+
+	hex_overlay    #(.LEN( 16  )) i_aock(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 30 ), .y( 22 ), .out( aoc_ov[20] ), .in( p1sum ) );    	    
+	hex_overlay    #(.LEN( 16  )) i_aocm(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 30 ), .y( 27 ), .out( aoc_ov[21] ), .in( p2sum ) );    	    
+
+
 	 
     ///////////////////////////
     // HDMI Video Output
@@ -882,4 +920,21 @@ module chip_top(
     OBUFDS i_lvds_d1( .O(hdmi_d1_p), .OB(hdmi_d1_n), .I(hdmi_d1) );
     OBUFDS i_lvds_d2( .O(hdmi_d2_p), .OB(hdmi_d2_n), .I(hdmi_d2) );
  
+endmodule
+
+module bcd_add64 (
+	input logic [15:0][3:0] ina,
+	input logic [15:0][3:0] inb,
+	output logic [15:0][3:0] sum
+	);
+	logic [16:0] c;
+	always_comb begin // should be a loop, but ...
+		c[0] = 0;
+		for( int ii = 0; ii < 16; ii++ ) begin
+		sum[ii] = ( {1'b0,ina[ii]} + {1'b0,inb[ii]} + {4'b0000,c[ii]} > 5'd9  ) ? 
+ 			  ( {1'b0,ina[ii]} + {1'b0,inb[ii]} + {4'b0000,c[ii]} - 5'd10 ) :
+ 			  ( {1'b0,ina[ii]} + {1'b0,inb[ii]} + {4'b0000,c[ii]}         ) ;
+		c[ii+1]=  ( {1'b0,ina[ii]} + {1'b0,inb[ii]} + {4'b0000,c[ii]} > 5'd9  ) ? 1'b1 : 1'b0;
+		end
+	end
 endmodule
