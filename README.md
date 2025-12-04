@@ -1,3 +1,45 @@
+# Advent of Code 2025
+Day 3 Puzzle solver logic implemented in an FPGA
+
+In hardware this puzzle can be run at wire speed. So I chose to burst the puzzle data over PCIe
+and have the harware accumulate the puzzle sums without stalling. I also used output pins of the device
+to drive HDMI output and report the puzzle sums, recalculated every frame and show a visual display of the algorithm
+operation (for the last row).
+
+I started with the LiteFury M.2 Pcie fpga with a 100K gate Artix-7 FPGA.
+I have it connected to a raspberry Pi5 running ubuntu, and had working
+mastery of the PCIe bus with the fpga reading data from host C buffers.
+I modified the design for the Day 3 puzzle, by loading the puzzle data (effectiveliy a 100x200 array)
+with C code reading the puzzle.txt and holding it in memory (stack) and reporting a base address.
+Every vsync the FPGA reads the puzzle data from the Pi5 memory over pcie (1x5gbit) and accumualtes 
+and displays the sums for both part 1 and part 2 solutions.
+
+To reproduce:
+
+    Generate a bitstream the FPGA projecdt using Vivado 2025.1 (flatfury.xpr)
+    Create and program the FPGA flash
+    compile and run the puzzle_read.c to load the puzzle into memory, and get base address (0x1c711000 in example)
+    power-cycle the system and the fpga pcie link up = 1 indicates connection on the display
+    Enable the FPGA as a pcie device (write 6 into the pcie COMMAND register)
+    Write the base address of the puzzle data into a register on the pcie device.
+    FPGA will read the rat and 200 rows of data every vsync (66Hz)
+    Both part 1 and part 2 sums will be reported, and the last row solution calculation will be logged and displayed
+
+Here is a photo of the running system (2222c89). You can see the Pi5+Fury stack and the hdmi display showing the puzzle sums
+and last row processing. It also shows a date rate consistant with 201 bursts of 2Kb each frame at 66Hz.
+
+![day3working](2222c89.jpg)    
+
+Here's the Day3 data as a 2D image
+
+![day3data](day3data.jpg)    
+
+The Readme from the branch point of this project is below
+
+
+
+
+
 # FlatFury
 
 My xilinx Artix-7 fpga dev system for PCIe devlopment. It uses a LiteFury mounted to a raspberry Pi5 with M.2 slot.
