@@ -469,151 +469,51 @@ module chip_top(
 		sr_bin_reg <= ( s_axi_rready && s_axi_rvalid ) ? { sr_bin_reg[6:0], { s_axi_rid, s_axi_rlast, s_axi_rresp }} : sr_bin_reg;
 	end
 
-    ///////////////////////////
-    // DAY-3 Logic
-    ///////////////////////////     
+    ///////////////////
+    // DAY 11 logic
+    //////////////////
     
-    // brinup Test generator
-    // Every vsync, emit a 256 cycle nibble vector with last
-    //logic [0:255][3:0] test_init = { 400'h4732321333332463233337712234322122322247222252423773321362313613333336333732233372323328332333322777, {156{4'h0}} };
-    //logic [0:255][3:0] test_buf; // shift register
-    logic [3:0] test_data;
-    //logic       test_valid;
-    //logic       test_last;
-    //logic [7:0] test_count;
-    //always_ff @(posedge axi_clk ) begin
-    //    if( vsync_c2c[3] ) begin // rising vsync edge
-    //        test_buf    <= test_init;
-    //        test_count  <= 0;
-    //        test_last   <= 0;
-    //        test_valid  <= 1;
-    //    end else if( test_valid ) begin
-    //        test_buf[0:255] <= { test_buf[1:255], 4'h0 }; //shift data
-    //        test_count   <= test_count + 1;
-    //        test_valid  <= ( test_count == 255 ) ? 1'b0 : 1'b1;
-    //        test_last   <= ( test_count == 254 ) ? 1'b1 : 1'b0;
-    //    end else begin
-    //        test_buf <= test_buf;
-    //        test_valid <= 0;
-    //        test_last <= 0;
-    //        test_count <= 0;
-    //    end    
-    //end // always        
-    //assign test_data = test_buf[0];
-    
-    // Connect up pcie read data port
-    assign test_data = s_axi_rdata[63-:4]; // upper nibble
-    assign test_valid = s_axi_rvalid;
-    assign test_last = s_axi_rlast;
-    
-    // common Data input buffer
-    logic [99:0][3:0] data_buf;
-    logic [1:0][99:0][3:0] best;
-    logic [11:0][99:0][3:0] p2best;
-    logic [11:0] flag;
-    
-    // Part 2 prioritized load flags
-    assign flag[11] = ( data_buf[10] > p2best[11][0]                   ) ? 1'b1 : 1'b0;
-    assign flag[10] = ( data_buf[ 9] > p2best[10][0] || (|flag[11:11]) ) ? 1'b1 : 1'b0;
-    assign flag[ 9] = ( data_buf[ 8] > p2best[ 9][0] || (|flag[11:10]) ) ? 1'b1 : 1'b0;
-    assign flag[ 8] = ( data_buf[ 7] > p2best[ 8][0] || (|flag[11: 9]) ) ? 1'b1 : 1'b0;
-    assign flag[ 7] = ( data_buf[ 6] > p2best[ 7][0] || (|flag[11: 8]) ) ? 1'b1 : 1'b0;
-    assign flag[ 6] = ( data_buf[ 5] > p2best[ 6][0] || (|flag[11: 7]) ) ? 1'b1 : 1'b0;
-    assign flag[ 5] = ( data_buf[ 4] > p2best[ 5][0] || (|flag[11: 6]) ) ? 1'b1 : 1'b0;
-    assign flag[ 4] = ( data_buf[ 3] > p2best[ 4][0] || (|flag[11: 5]) ) ? 1'b1 : 1'b0;
-    assign flag[ 3] = ( data_buf[ 2] > p2best[ 3][0] || (|flag[11: 4]) ) ? 1'b1 : 1'b0;
-    assign flag[ 2] = ( data_buf[ 1] > p2best[ 2][0] || (|flag[11: 3]) ) ? 1'b1 : 1'b0;
-    assign flag[ 1] = ( data_buf[ 0] > p2best[ 1][0] || (|flag[11: 2]) ) ? 1'b1 : 1'b0;
-    assign flag[ 0] = ( test_data    > p2best[ 0][0] || (|flag[11: 1]) ) ? 1'b1 : 1'b0;  
-    
-    
-    always_ff @(posedge axi_clk ) begin  
-        if( vsync_c2c[3] || ( test_valid && test_last && row_cnt != 8'd200 ) ) begin // clear on last except final row
-            data_buf <= 0;
-            best <= 0;
-            p2best <= 0;
-        end else if( test_valid && |test_data) begin
-            data_buf <= { data_buf[98:0], test_data };
-            // Day 3 Part 1
-            best[1] <= { best[1][98:0], ( data_buf[0] > best[1][0] ) ? data_buf[0] : best[1][0] };
-            best[0] <= { best[0][98:0], ( data_buf[0] > best[1][0] ) ? test_data   : 
-                                        ( test_data   > best[0][0] ) ? test_data   : best[0][0] };
-            // Day 3 Part 2 
-            p2best[11] <= { p2best[11][98:0], ( flag[11] ) ? data_buf[10] : p2best[11][0] };
-            p2best[10] <= { p2best[10][98:0], ( flag[10] ) ? data_buf[ 9] : p2best[10][0] };
-            p2best[ 9] <= { p2best[ 9][98:0], ( flag[ 9] ) ? data_buf[ 8] : p2best[ 9][0] };
-            p2best[ 8] <= { p2best[ 8][98:0], ( flag[ 8] ) ? data_buf[ 7] : p2best[ 8][0] };
-            p2best[ 7] <= { p2best[ 7][98:0], ( flag[ 7] ) ? data_buf[ 6] : p2best[ 7][0] };
-            p2best[ 6] <= { p2best[ 6][98:0], ( flag[ 6] ) ? data_buf[ 5] : p2best[ 6][0] };
-            p2best[ 5] <= { p2best[ 5][98:0], ( flag[ 5] ) ? data_buf[ 4] : p2best[ 5][0] };
-            p2best[ 4] <= { p2best[ 4][98:0], ( flag[ 4] ) ? data_buf[ 3] : p2best[ 4][0] };
-            p2best[ 3] <= { p2best[ 3][98:0], ( flag[ 3] ) ? data_buf[ 2] : p2best[ 3][0] };
-            p2best[ 2] <= { p2best[ 2][98:0], ( flag[ 2] ) ? data_buf[ 1] : p2best[ 2][0] };
-            p2best[ 1] <= { p2best[ 1][98:0], ( flag[ 1] ) ? data_buf[ 0] : p2best[ 1][0] };
-            p2best[ 0] <= { p2best[ 0][98:0], ( flag[ 0] ) ? test_data    : p2best[ 0][0] };
+    // DUT Connections
+	logic [63:0] svr, you, out, fft, dac, fft_ofs, dac_ofs;
+
+    // Register the inputs from pci write
+        always @(posedge axi_clk ) begin
+             if(  m_axi_awvalid && m_axi_awready && 
+                  m_axi_wvalid  && m_axi_wready  && 
+                  m_axi_awaddr == 32'h0000_CC0C  ) // write to 0xCC0C
+                  { out[0], fft_ofs[0], dac_ofs[0] } <= m_axi_wdata[34:32];
         end
-    end // always
-    
-    // BCD Accumulators
-    logic [15:0][3:0] p1sum, p2sum, p1add, p2add;
-    bcd_add64 i_addp1( 
-        .ina( { {14{4'h0}}, best[1][0],best[0][0] } ),
-        .inb( p1sum ), .sum( p1add ) );
-    bcd_add64 i_addp2( 
-        .ina( { {4{4'h0}},  p2best[11][0],
-                            p2best[10][0],
-                            p2best[ 9][0],
-                            p2best[ 8][0],
-                            p2best[ 7][0],
-                            p2best[ 6][0],
-                            p2best[ 5][0],
-                            p2best[ 4][0],
-                            p2best[ 3][0],
-                            p2best[ 2][0],
-                            p2best[ 1][0],
-                            p2best[ 0][0] } ),
-        .inb( p2sum ), .sum( p2add ) );
-    always_ff @(posedge axi_clk ) begin
-        if( vsync_c2c[3] ) begin
-            p1sum <= 0;
-            p2sum <= 0;
-        end else if ( test_valid & test_last ) begin
-            p1sum <= p1add;
-            p2sum <= p2add;
-        end
-    end
-       
-         
+
+	// Instantiate day 10 synthesizable verilog (combinatorial) 
+	aoc_day11 i_day11 (
+	//	.clk	( clk ),
+	//	.reset	( reset ),
+		// circuit inputs
+		.out    ( out ),
+		.fft_ofs( fft_ofs ),
+		.dac_ofs( dac_ofs ),
+		// Circuit outputs
+		.svr    ( svr ),
+		.you    ( you ),
+		.fft    ( fft ),
+		.dac    ( dac )
+	);
     
     // Display on HDMI screen
-    logic [40:0] aoc_ov;
-	string_overlay #(.LEN( 12  )) i_aoc0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 22 ), .out( aoc_ov[0] ), .str( "Day 3 Part 1" ) );
-	hex_overlay    #(.LEN( 100 )) i_aoc1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 23 ), .out( aoc_ov[1] ), .in( data_buf ) ); 
-	hex_overlay    #(.LEN( 100 )) i_aoc2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 24 ), .out( aoc_ov[2] ), .in( best[0] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aoc3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 25 ), .out( aoc_ov[3] ), .in( best[1] ) );    	    
-	string_overlay #(.LEN( 2   )) i_aoc4(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 23 ), .out( aoc_ov[4] ), .str( "Da" ) );
-	string_overlay #(.LEN( 2   )) i_aoc5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 24 ), .out( aoc_ov[5] ), .str( "b0" ) );
-	string_overlay #(.LEN( 2   )) i_aoc6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 25 ), .out( aoc_ov[6] ), .str( "b1" ) );
+    logic [39:0] aoc_ov;
+	string_overlay #(.LEN( 12 )) i_aoc0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 45 ), .y( 22 ), .out( aoc_ov[0] ), .str( "Day 11 Path sums" ) );
+	bin_overlay    #(.LEN( 3  )) i_aoc1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x( 45 ), .y( 24 ), .out( aoc_ov[1] ), .in( { out[0], fft_ofs[0], dac_ofs[0] } ) ); 
+	hex_overlay    #(.LEN( 16 )) i_aoc2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 45 ), .y( 26 ), .out( aoc_ov[2] ), .in( svr ) ); 
+	hex_overlay    #(.LEN( 16 )) i_aoc3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 45 ), .y( 28 ), .out( aoc_ov[3] ), .in( you ) );    	    
+	hex_overlay    #(.LEN( 16 )) i_aoc4(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 45 ), .y( 30 ), .out( aoc_ov[4] ), .in( fft ) );    	    
+	hex_overlay    #(.LEN( 16 )) i_aoc5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 45 ), .y( 32 ), .out( aoc_ov[5] ), .in( dac ) );    
+		    
+	string_overlay #(.LEN( 11 )) i_aoc6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 30 ), .y( 24 ), .out( aoc_ov[6] ), .str( "out/fft/dac" ) );
+	string_overlay #(.LEN( 3  )) i_aoc7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 26 ), .out( aoc_ov[7] ), .str( "b0" ) );
+	string_overlay #(.LEN( 3  )) i_aoc8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 28 ), .out( aoc_ov[8] ), .str( "b1" ) );
+	string_overlay #(.LEN( 3  )) i_aoc9(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 30 ), .out( aoc_ov[9] ), .str( "b0" ) );
+	string_overlay #(.LEN( 3  )) i_aoca(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 32 ), .out( aoc_ov[10]), .str( "b1" ) );
 	
-	hex_overlay    #(.LEN( 100 )) i_aoc7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 28 ), .out( aoc_ov[ 7] ), .in( p2best[ 0] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aoc8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 29 ), .out( aoc_ov[ 8] ), .in( p2best[ 1] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aoc9(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 30 ), .out( aoc_ov[ 9] ), .in( p2best[ 2] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aoca(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 31 ), .out( aoc_ov[10] ), .in( p2best[ 3] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aocb(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 32 ), .out( aoc_ov[11] ), .in( p2best[ 4] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aocc(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 33 ), .out( aoc_ov[12] ), .in( p2best[ 5] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aocd(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 34 ), .out( aoc_ov[13] ), .in( p2best[ 6] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aoce(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 35 ), .out( aoc_ov[14] ), .in( p2best[ 7] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aocf(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 36 ), .out( aoc_ov[15] ), .in( p2best[ 8] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aocg(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 37 ), .out( aoc_ov[16] ), .in( p2best[ 9] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aoch(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 38 ), .out( aoc_ov[17] ), .in( p2best[10] ) );    	    
-	hex_overlay    #(.LEN( 100 )) i_aoci(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 14 ), .y( 39 ), .out( aoc_ov[18] ), .in( p2best[11] ) );    	    
-	string_overlay #(.LEN( 12  )) i_aocj(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 11 ), .y( 27 ), .out( aoc_ov[19] ), .str( "Day 3 Part 2" ) );
-
-	hex_overlay    #(.LEN( 16  )) i_aock(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 30 ), .y( 22 ), .out( aoc_ov[20] ), .in( p1sum ) );    	    
-	hex_overlay    #(.LEN( 16  )) i_aocm(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 30 ), .y( 27 ), .out( aoc_ov[21] ), .in( p2sum ) );    	    
-
-
-	 
     ///////////////////////////
     // HDMI Video Output
     ///////////////////////////     
