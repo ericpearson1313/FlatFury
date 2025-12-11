@@ -503,18 +503,18 @@ module chip_top(
     
     // Display on HDMI screen
     logic [39:0] aoc_ov;
-	string_overlay #(.LEN( 12 )) i_aoc0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 45 ), .y( 22 ), .out( aoc_ov[0] ), .str( "Day 11 Path sums" ) );
+	string_overlay #(.LEN( 20 )) i_aoc0(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 45 ), .y( 22 ), .out( aoc_ov[0] ), .str( "AOC Day 11 Path sums" ) );
 	bin_overlay    #(.LEN( 3  )) i_aoc1(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.bin_char(bin_char)    , .x( 45 ), .y( 24 ), .out( aoc_ov[1] ), .in( { out[0], fft_ofs[0], dac_ofs[0] } ) ); 
 	hex_overlay    #(.LEN( 16 )) i_aoc2(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 45 ), .y( 26 ), .out( aoc_ov[2] ), .in( svr ) ); 
 	hex_overlay    #(.LEN( 16 )) i_aoc3(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 45 ), .y( 28 ), .out( aoc_ov[3] ), .in( you ) );    	    
 	hex_overlay    #(.LEN( 16 )) i_aoc4(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 45 ), .y( 30 ), .out( aoc_ov[4] ), .in( fft ) );    	    
 	hex_overlay    #(.LEN( 16 )) i_aoc5(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.hex_char(hex_char)    , .x( 45 ), .y( 32 ), .out( aoc_ov[5] ), .in( dac ) );    
 		    
-	string_overlay #(.LEN( 11 )) i_aoc6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 30 ), .y( 24 ), .out( aoc_ov[6] ), .str( "out/fft/dac" ) );
-	string_overlay #(.LEN( 3  )) i_aoc7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 26 ), .out( aoc_ov[7] ), .str( "b0" ) );
-	string_overlay #(.LEN( 3  )) i_aoc8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 28 ), .out( aoc_ov[8] ), .str( "b1" ) );
-	string_overlay #(.LEN( 3  )) i_aoc9(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 30 ), .out( aoc_ov[9] ), .str( "b0" ) );
-	string_overlay #(.LEN( 3  )) i_aoca(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 32 ), .out( aoc_ov[10]), .str( "b1" ) );
+	string_overlay #(.LEN( 11 )) i_aoc6(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 32 ), .y( 24 ), .out( aoc_ov[6] ), .str( "out/fft/dac" ) );
+	string_overlay #(.LEN( 3  )) i_aoc7(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 26 ), .out( aoc_ov[7] ), .str( "svr" ) );
+	string_overlay #(.LEN( 3  )) i_aoc8(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 28 ), .out( aoc_ov[8] ), .str( "you" ) );
+	string_overlay #(.LEN( 3  )) i_aoc9(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 30 ), .out( aoc_ov[9] ), .str( "fft" ) );
+	string_overlay #(.LEN( 3  )) i_aoca(.clk(hdmi_clk), .reset(reset), .char_x(char_x), .char_y(char_y),.ascii_char(ascii_char), .x( 40 ), .y( 32 ), .out( aoc_ov[10]), .str( "dac" ) );
 	
     ///////////////////////////
     // HDMI Video Output
