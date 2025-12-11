@@ -478,7 +478,9 @@ module chip_top(
 
     // Register the inputs from pci write
         always @(posedge axi_clk ) begin
-             if(  m_axi_awvalid && m_axi_awready && 
+            if( axi_reset )
+                 { out[0], fft_ofs[0], dac_ofs[0] } <= 3'b100; // boot up with part 1
+            else if(  m_axi_awvalid && m_axi_awready && 
                   m_axi_wvalid  && m_axi_wready  && 
                   m_axi_awaddr == 32'h0000_CC0C  ) // write to 0xCC0C
                   { out[0], fft_ofs[0], dac_ofs[0] } <= m_axi_wdata[34:32];
