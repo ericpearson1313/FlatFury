@@ -1,4 +1,5 @@
-# Advent of Code 2025
+# Advent of Code 2025 Day 3
+
 Day 3 Puzzle solver logic implemented in an FPGA
 
 In hardware this puzzle can be run at wire speed. So I chose to burst the puzzle data over PCIe
